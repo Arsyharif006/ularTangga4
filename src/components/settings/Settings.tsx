@@ -19,6 +19,7 @@ import supabase from '@/lib/supabase/client';
 import { useAudio } from '@/lib/audio/AudioProvider';
 import { useSettingsStore } from '@/stores/settingsStore';
 import PurchaseModal from '@/components/ui/PurchaseModal';
+import packageJson from '../../../package.json';
 
 // ── Design tokens (sama dengan Main Menu) ───────────────────
 const BOARD      = '#EFDFB8';
@@ -841,6 +842,11 @@ export const Settings = () => {
               >
                 Keluar dari Akun
               </button>
+            </div>
+
+            <div className="flex items-center justify-between px-2 pt-3 text-[11px] font-semibold" style={{ color: WOOD_LIGHT }}>
+              <span>Game Version</span>
+              <span className="font-black" style={{ color: ACCENT_DEEP }}>{packageJson.version}</span>
             </div>
           </>}
 
