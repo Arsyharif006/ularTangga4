@@ -7,6 +7,14 @@ import { ALL_QUESTIONS } from '@/data/questions';
 import { ALL_ITEMS } from '@/data/items';
 import { BOMB_PENALTY_STEPS } from '@/lib/constants';
 
+const BOT_FORBIDDEN_ITEM_TYPES = new Set(['hint_answer', 'freeze_timer', 'golden_dice']);
+
+const getRandomItemForPlayer = (player?: Player | null) => {
+  const candidates = ALL_ITEMS.filter((item) => !player?.isBot || !BOT_FORBIDDEN_ITEM_TYPES.has(item.type));
+  if (candidates.length === 0) return null;
+  return candidates[Math.floor(Math.random() * candidates.length)];
+};
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface GameStoreState {
@@ -333,10 +341,17 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   // ── triggerMysteryBox ──────────────────────────────────────────────────────
   triggerMysteryBox: () => {
     const { players, currentPlayerIndex } = get();
-    const randomItem = ALL_ITEMS[Math.floor(Math.random() * ALL_ITEMS.length)];
+    const player = players[currentPlayerIndex];
+    const randomItem = getRandomItemForPlayer(player);
+
+    if (!randomItem) {
+      set({ phase: 'rolling', diceValue: null, diceIsRolling: false, movementStepsRemaining: 0, turnActionLock: false });
+      return;
+    }
+
     setTimeout(() => {
       set({
-        awardedItem: { playerId: players[currentPlayerIndex].id, item: randomItem },
+        awardedItem: { playerId: player.id, item: randomItem },
         awardContext: 'mystery',
         phase: 'item_awarded',
       });
@@ -416,10 +431,18 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       }
 
       if (p.correctStreak >= 3) {
-        const randomItem = ALL_ITEMS[Math.floor(Math.random() * ALL_ITEMS.length)];
+        const randomItem = getRandomItemForPlayer(p);
         p.correctStreak = 0;
         newPlayers[resolvedIdx] = p;
         set({ players: newPlayers });
+
+        if (!randomItem) {
+          setTimeout(() => {
+            get().nextTurn();
+          }, 1000);
+          return;
+        }
+
         setTimeout(() => {
           set({
             awardedItem: { playerId: p.id, item: randomItem },
@@ -503,21 +526,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       turnActionLock: false,
     });
 
-    // Jika pemain selanjutnya adalah bot, jadwalkan agar bot otomatis melempar dadu.
-    try {
-      const nextPlayer = newPlayers[nextIndex];
-      if (nextPlayer?.isBot) {
-        setTimeout(() => {
-          // Pastikan giliran masih untuk player ini dan fase rolling
-          const s = get();
-          if (s.currentPlayerIndex === nextIndex && s.phase === 'rolling') {
-            s.rollDice();
-          }
-        }, 700);
-      }
-    } catch (err) {
-      // ignore
-    }
+    // Bot akan menangani giliran sendiri di UI, termasuk pengecekan item/powerup
+    // sebelum memutuskan untuk mengocok dadu.
   },
 
   // ── useItem ────────────────────────────────────────────────────────────────
@@ -630,8 +640,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     const newPlayers = [...players];
     const idx = newPlayers.findIndex((p) => p.id === playerId);
     if (idx !== -1 && newPlayers[idx].inventory.length < 3) {
-      newPlayers[idx] = { ...newPlayers[idx], inventory: [...newPlayers[idx].inventory, item] };
-      set({ players: newPlayers });
+      const player = newPlayers[idx];
+      const isBotRestricted = Boolean(player.isBot && BOT_FORBIDDEN_ITEM_TYPES.has(item.type));
+      if (!isBotRestricted) {
+        newPlayers[idx] = { ...player, inventory: [...player.inventory, item] };
+        set({ players: newPlayers });
+      }
     }
   },
 

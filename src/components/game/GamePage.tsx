@@ -51,7 +51,7 @@ export default function GamePage() {
   const [showCountdown, setShowCountdown] = useState(false);
   const [notifQueue, setNotifQueue] = useState<Array<{ id: string; text: string; kind?: 'success' | 'error' | 'info'; key?: string }>>([]);
   const botTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const botTurnKeyRef = useRef<string | null>(null);
+  const botActionInFlightRef = useRef(false);
 
   useEffect(() => {
     if (players.length === 0) {
@@ -90,15 +90,13 @@ export default function GamePage() {
     }
 
     if (!currentPlayer?.isBot) {
-      botTurnKeyRef.current = null;
+      botActionInFlightRef.current = false;
       return;
     }
 
-    const turnKey = `${currentPlayer.id}-${phase}-${turnCount}-${currentPlayerIndex}`;
-    if (botTurnKeyRef.current === turnKey) {
+    if (botActionInFlightRef.current) {
       return;
     }
-    botTurnKeyRef.current = turnKey;
 
     const schedule = (callback: () => void, delay: number) => {
       botTimerRef.current = setTimeout(callback, delay);
@@ -106,6 +104,8 @@ export default function GamePage() {
 
     if (phase === 'rolling') {
       schedule(() => {
+        botActionInFlightRef.current = true;
+
         const manualItems = currentPlayer.inventory.filter((item) =>
           item.usage === 'manual' && ['golden_dice', 'skip_turn', 'push_back', 'swap_position', 'bomb_trap'].includes(item.type)
         );
@@ -124,6 +124,7 @@ export default function GamePage() {
           } else {
             useItem(itemToUse.id);
           }
+          botActionInFlightRef.current = false;
           return;
         }
 
@@ -133,20 +134,25 @@ export default function GamePage() {
         } else {
           rollDice();
         }
+        botActionInFlightRef.current = false;
       }, 900);
       return;
     }
 
     if (phase === 'golden_dice') {
       schedule(() => {
+        botActionInFlightRef.current = true;
         const choice = Math.random() < 0.75 ? 6 : 4;
         rollDice(choice as any);
+        botActionInFlightRef.current = false;
       }, 900);
       return;
     }
 
     if (phase === 'question') {
       schedule(async () => {
+        botActionInFlightRef.current = true;
+
         const manualQuestionItems = currentPlayer.inventory.filter((item) =>
           item.usage === 'manual' && ['hint_answer', 'freeze_timer'].includes(item.type)
         );
@@ -154,6 +160,13 @@ export default function GamePage() {
         if (manualQuestionItems.length > 0 && Math.random() < 0.5) {
           const itemToUse = manualQuestionItems[Math.floor(Math.random() * manualQuestionItems.length)];
           useItem(itemToUse.id);
+          setTimeout(() => {
+            const correct = Math.random() < 0.6;
+            const resultText = `${currentPlayer?.name} ${correct ? 'berhasil menjawab soal' : 'tidak berhasil menjawab soal'}`;
+            pushNotification(resultText, correct ? 'success' : 'error', `bot-answer-${currentPlayer?.id}-${turnCount}-${phase}`);
+            answerQuestion(correct);
+            botActionInFlightRef.current = false;
+          }, 600);
           return;
         }
 
@@ -176,6 +189,7 @@ export default function GamePage() {
 
           setTimeout(() => {
             answerQuestion(correct);
+            botActionInFlightRef.current = false;
           }, 700);
         }, 900);
       }, 1200);
@@ -184,10 +198,15 @@ export default function GamePage() {
 
     if ((phase === 'item_use' || phase === 'swap_position') && pendingItemId) {
       schedule(() => {
+        botActionInFlightRef.current = true;
         const targetCandidates = players.filter((p) => p.id !== currentPlayer.id && !p.hasFinished);
-        if (targetCandidates.length === 0) return;
+        if (targetCandidates.length === 0) {
+          botActionInFlightRef.current = false;
+          return;
+        }
         const target = targetCandidates[Math.floor(Math.random() * targetCandidates.length)];
         useItem(pendingItemId, target.id);
+        botActionInFlightRef.current = false;
       }, 900);
     }
   }, [currentPlayer, currentPlayerIndex, phase, turnCount, rollDice, useItem, answerQuestion, pendingItemId, players, currentQuestion, showQuestion]);
