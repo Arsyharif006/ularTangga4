@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+@theme {
+  --color-indigo-500: #6366f1;
+  --color-purple-500: #a855f7;
+}
+
+@layer base {
+  body {
+    background-color: #2B1B0F;
+    background-image: radial-gradient(circle at 50% 0%, #5C3417 0%, #2B1B0F 100%);
+    color: white;
+    min-height: 100vh;
+  }
+}
+
+/* 3D Dice CSS */
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* Scrollbar customization */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(122, 74, 38, 0.5);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(122, 74, 38, 0.8);
+}
