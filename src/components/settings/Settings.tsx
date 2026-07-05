@@ -2,7 +2,6 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   ChevronLeft,
@@ -1128,11 +1127,11 @@ export const Settings = () => {
             >
               <div className="mb-8 flex flex-col items-center">
                 <div className="mb-4 flex items-center justify-center gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2" style={{ background: BOARD_DARK, borderColor: WOOD }}>
-                    <Image src="/image/Snake.png" alt="Logo game" width={64} height={64} className="object-contain" />
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full border-2" style={{ background: BOARD_DARK, borderColor: WOOD }}>
+                    <span className="text-3xl">🎲</span>
                   </div>
-                  <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2" style={{ background: BOARD_DARK, borderColor: WOOD }}>
-                    <Image src="/image/Univ.png" alt="Logo universitas" width={64} height={64} className="object-contain" />
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full border-2" style={{ background: BOARD_DARK, borderColor: WOOD }}>
+                    <span className="text-2xl">🏛️</span>
                   </div>
                 </div>
                 <p className="text-[10px] font-black uppercase tracking-[0.35em]" style={{ color: ACCENT }}>Credits</p>
@@ -1142,11 +1141,11 @@ export const Settings = () => {
                 </p>
               </div>
 
-              {CREDIT_SECTIONS.map((section, sectionIndex) => (
-                <div key={`${section.title}-${sectionIndex}`} className="mb-4 w-full max-w-2xl text-center">
+              {CREDIT_SECTIONS.map((section) => (
+                <div key={section.title} className="mb-4 w-full max-w-2xl text-center">
                   <h4 className="mb-2 text-sm font-black uppercase tracking-[0.25em]" style={{ color: ACCENT }}>{section.title}</h4>
-                  {section.lines.map((line, lineIndex) => (
-                    <p key={`${section.title}-${lineIndex}-${line}`} className="text-sm leading-relaxed text-[#f7ebd0]">
+                  {section.lines.map((line) => (
+                    <p key={line} className="text-sm leading-relaxed text-[#f7ebd0]">
                       {line}
                     </p>
                   ))}

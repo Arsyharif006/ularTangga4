@@ -3,14 +3,27 @@
 // ============================================================
 
 // ── Theme / Category ─────────────────────────────────────────
+export type QuestionGrade = 'sd' | 'smp' | 'sma_smk';
+
 export type QuestionTheme =
+  | QuestionGrade
   | 'general'
   | 'programming'
   | 'sistem_digital'
   | 'logika_mtk'
   | 'matematika'
   | 'english'
-  | 'history';
+  | 'history'
+  | 'bahasa_indonesia'
+  | 'ipa'
+  | 'ips'
+  | 'ppkn'
+  | 'fisika'
+  | 'kimia'
+  | 'broadcasting'
+  | 'informatika'
+  | 'tkj'
+  | 'desain_grafis';
 
 export type BoardThemeName = 'classic' | 'winter' | 'forest' | 'lava' | 'space';
 

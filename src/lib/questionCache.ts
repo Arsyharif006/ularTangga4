@@ -5,15 +5,46 @@
 import type { Question, QuestionTheme } from '@/types/game';
 import { generateQuestionsFromAI } from './aiQuestionGenerator';
 import { ALL_QUESTIONS as STATIC_QUESTIONS } from '@/data/questions';
+import supabase from './supabase/client';
 
 interface QuestionCache {
   [theme: string]: Question[];
 }
 
+async function loadAIQuestionsFromDatabase(theme: QuestionTheme): Promise<Question[]> {
+  try {
+    const { data, error } = await supabase
+      .from('ai_questions')
+      .select('*')
+      .eq('theme', theme)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.warn('Failed loading AI questions from database:', error);
+      return [];
+    }
+    if (!Array.isArray(data)) {
+      return [];
+    }
+
+    return data.map((row: any) => ({
+      id: row.id ? String(row.id) : `ai_db_${Math.random().toString(36).substring(2, 9)}`,
+      theme: row.theme,
+      question: row.question,
+      options: row.options as [string, string, string, string],
+      correctAnswer: row.correct_answer as 0 | 1 | 2 | 3,
+      difficulty: row.difficulty as 'easy' | 'medium' | 'hard',
+    }));
+  } catch (error) {
+    console.warn('Failed loading AI questions from database:', error);
+    return [];
+  }
+}
+
 let questionCache: QuestionCache = {};
 let cacheInitialized = false;
 
-const QUESTIONS_PER_THEME = 20; // Cache 20 soal per theme
+const QUESTIONS_PER_THEME = 3;
 
 export async function initializeQuestionCache() {
   if (cacheInitialized) return;
@@ -21,7 +52,6 @@ export async function initializeQuestionCache() {
   const useAI = process.env.NEXT_PUBLIC_USE_AI_QUESTIONS === 'true';
 
   if (!useAI) {
-    // Use static questions only
     console.log('Using static questions (AI disabled)');
     questionCache = { ...STATIC_QUESTIONS };
     cacheInitialized = true;
@@ -29,24 +59,46 @@ export async function initializeQuestionCache() {
   }
 
   try {
-    console.log('Initializing AI question cache...');
-    const themes: QuestionTheme[] = ['general', 'programming', 'sistem_digital', 'logika_mtk', 'matematika', 'english', 'history'];
+    console.log('Initializing AI question cache lazily...');
+    questionCache = { ...STATIC_QUESTIONS };
 
-    // Pre-generate beberapa soal untuk masing-masing theme
+    const themes: QuestionTheme[] = [
+      'sd', 'smp', 'sma_smk',
+      'general',
+      'programming',
+      'sistem_digital',
+      'logika_mtk',
+      'matematika',
+      'english',
+      'history',
+      'bahasa_indonesia',
+      'ipa',
+      'ips',
+      'ppkn',
+      'fisika',
+      'kimia',
+      'broadcasting',
+      'informatika',
+      'tkj',
+      'desain_grafis',
+    ];
+
     for (const theme of themes) {
       try {
-        console.log(`Generating ${QUESTIONS_PER_THEME} questions for theme: ${theme}`);
-        const generated = await generateQuestionsFromAI(theme, QUESTIONS_PER_THEME, 'medium');
-        questionCache[theme] = generated;
+        const aiDatabaseQuestions = await loadAIQuestionsFromDatabase(theme);
+        if (aiDatabaseQuestions.length > 0) {
+          questionCache[theme] = [...(STATIC_QUESTIONS[theme] || []), ...aiDatabaseQuestions];
+        } else {
+          questionCache[theme] = STATIC_QUESTIONS[theme] || [];
+        }
       } catch (error) {
-        console.warn(`Failed to generate questions for ${theme}, using static fallback:`, error);
-        // Fallback to static questions
+        console.warn(`Failed loading DB questions for ${theme}:`, error);
         questionCache[theme] = STATIC_QUESTIONS[theme] || [];
       }
     }
 
     cacheInitialized = true;
-    console.log('Question cache initialized successfully');
+    console.log('Question cache initialized successfully without pre-generating AI questions');
   } catch (error) {
     console.error('Error initializing question cache, falling back to static questions:', error);
     questionCache = { ...STATIC_QUESTIONS };
@@ -72,16 +124,15 @@ export async function getNextQuestion(
   // Find a question that hasn't been used yet
   let available = questions.filter(q => !usedQuestionIds.includes(q.id));
 
-  // If all questions have been used, try to generate new ones from AI
+  // If all questions have been used, try to generate new ones from AI for this theme only
   if (available.length === 0 && process.env.NEXT_PUBLIC_USE_AI_QUESTIONS === 'true') {
-    console.log(`All questions used for theme ${theme}, generating new ones...`);
+    console.log(`All questions used for theme ${theme}, generating a small batch...`);
     try {
-      const newQuestions = await generateQuestionsFromAI(theme, 5, 'medium');
+      const newQuestions = await generateQuestionsFromAI(theme, QUESTIONS_PER_THEME, 'medium');
       questionCache[theme] = [...questions, ...newQuestions];
-      available = newQuestions;
+      available = newQuestions.length > 0 ? newQuestions : questions;
     } catch (error) {
-      console.warn('Failed to generate new questions, resetting used list:', error);
-      // Reset used questions and try again
+      console.warn('Failed to generate new questions, using existing ones or DB:', error);
       available = questions;
     }
   }

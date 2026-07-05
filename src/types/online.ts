@@ -1,6 +1,7 @@
 // ============================================================
 // Online Multiplayer Types
 // ============================================================
+import type { QuestionTheme } from '@/types/game';
 
 export interface GameRoom {
   roomId: string;
@@ -8,13 +9,7 @@ export interface GameRoom {
   createdBy: string;
   password?: string;
   players: OnlinePlayer[];
-  theme: 'general'
-  | 'programming'
-  | 'sistem_digital'
-  | 'logika_mtk'
-  | 'matematika'
-  | 'english'
-  | 'history';
+  theme: QuestionTheme;
   status: 'waiting' | 'playing' | 'finished';
   currentTurnPlayerId: string; // ← number → string
   createdAt: number;

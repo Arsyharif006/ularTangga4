@@ -31,14 +31,41 @@ const AVAILABLE_COLORS: { color: PlayerColor; from: string; to: string; ring: st
 ];
 
 const THEMES: { value: QuestionTheme; label: string }[] = [
-  { value: 'general',        label: 'Umum'           },
-  { value: 'programming',    label: 'Pemrograman'    },
-  { value: 'sistem_digital', label: 'Sistem Digital' },
-  { value: 'logika_mtk',     label: 'Logika MTK'     },
-  { value: 'matematika',     label: 'Matematika'     },
-  { value: 'english',        label: 'Bahasa Inggris' },
-  { value: 'history',        label: 'Sejarah'        },
+  { value: 'sd',      label: 'SD (Pilih Mata Pelajaran)' },
+  { value: 'smp',     label: 'SMP (Pilih Mata Pelajaran)' },
+  { value: 'sma_smk', label: 'SMA/SMK (Pilih Mata Pelajaran)' },
 ];
+
+const SUBJECTS_BY_GRADE: Record<string, { value: QuestionTheme; label: string }[]> = {
+  sd: [
+    { value: 'bahasa_indonesia', label: 'Bahasa Indonesia' },
+    { value: 'matematika', label: 'Matematika' },
+    { value: 'ipa', label: 'IPA' },
+    { value: 'ips', label: 'IPS' },
+    { value: 'english', label: 'Bahasa Inggris' },
+    { value: 'history', label: 'Sejarah' },
+  ],
+  smp: [
+    { value: 'bahasa_indonesia', label: 'Bahasa Indonesia' },
+    { value: 'matematika', label: 'Matematika' },
+    { value: 'ipa', label: 'IPA' },
+    { value: 'ips', label: 'IPS' },
+    { value: 'ppkn', label: 'PPKn' },
+    { value: 'english', label: 'Bahasa Inggris' },
+    { value: 'history', label: 'Sejarah' },
+  ],
+  sma_smk: [
+    { value: 'matematika', label: 'Matematika' },
+    { value: 'fisika', label: 'Fisika' },
+    { value: 'kimia', label: 'Kimia' },
+    { value: 'programming', label: 'Pemrograman' },
+    { value: 'history', label: 'Sejarah' },
+    { value: 'broadcasting', label: 'Broadcasting' },
+    { value: 'informatika', label: 'Informatika' },
+    { value: 'tkj', label: 'TKJ' },
+    { value: 'desain_grafis', label: 'Desain Grafis' },
+  ],
+};
 
 const TOKENS = [
   { bg: 'from-rose-500/60 to-rose-700/60',       size: 30, top: '6%',  left: '90%', duration: 8,   delay: 0   },
@@ -65,6 +92,8 @@ export default function CreateRoomPage() {
 
   const [roomName,       setRoomName]       = useState('My Game Room');
   const [theme,          setTheme]          = useState<QuestionTheme>('general');
+  const [selectedGrade,  setSelectedGrade]  = useState<QuestionTheme | null>(null);
+  const [selectedSubject, setSelectedSubject] = useState<QuestionTheme | null>(null);
   const [password,       setPassword]       = useState('');
   const [usePassword,    setUsePassword]    = useState(false);
   const [roomCode,       setRoomCode]       = useState(generateRoomCode());
@@ -275,14 +304,45 @@ export default function CreateRoomPage() {
           <div className="mb-5">
             <label style={labelStyle}><Sparkles className="w-3.5 h-3.5" /> Tema Pertanyaan</label>
             <div className="relative">
-              <select value={theme} onChange={e => setTheme(e.target.value as QuestionTheme)}
+              <select value={selectedGrade ?? ''} onChange={e => {
+                  const v = e.target.value as QuestionTheme;
+                  // top select is grade-only; selecting grade resets subject
+                  if (['sd','smp','sma_smk'].includes(v)) {
+                    setSelectedGrade(v);
+                    setSelectedSubject(null);
+                    setTheme(v);
+                  } else {
+                    setSelectedGrade(null);
+                    setSelectedSubject(null);
+                    setTheme('general');
+                  }
+                }}
                 className="w-full appearance-none rounded-xl p-3 pr-10 font-semibold focus:outline-none transition-all"
                 style={{ background: BOARD, border: `2px solid ${WOOD}`, color: INK }}>
+                <option value="">Pilih Tingkat</option>
                 {THEMES.map(t => (
                   <option key={t.value} value={t.value} style={{ background: BOARD, color: INK }}>{t.label}</option>
                 ))}
               </select>
               <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2" style={{ color: WOOD }}>▾</div>
+
+              {selectedGrade && (
+                <div className="mt-3">
+                  <label style={labelStyle}>Pilih Mata Pelajaran</label>
+                  <select value={selectedSubject ?? ''} onChange={e => {
+                      const v = e.target.value as QuestionTheme;
+                      setSelectedSubject(v || null);
+                      if (v) setTheme(v);
+                    }}
+                    className="w-full appearance-none rounded-xl p-3 pr-10 font-semibold focus:outline-none transition-all"
+                    style={{ background: BOARD, border: `2px solid ${WOOD}`, color: INK }}>
+                    <option value="">Pilih Mata Pelajaran</option>
+                    {SUBJECTS_BY_GRADE[selectedGrade].map(s => (
+                      <option key={s.value} value={s.value} style={{ background: BOARD, color: INK }}>{s.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           </div>
 

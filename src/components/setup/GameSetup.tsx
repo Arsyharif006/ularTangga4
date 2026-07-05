@@ -9,7 +9,6 @@ import type { Player, QuestionTheme, PlayerColor } from '@/types/game';
 import { BOARD_THEME_LIST, pickRandomBoardTheme, type SelectableBoardThemeName } from '@/data/boardThemes';
 import { BoardThemePreview } from '@/components/BoardThemePreview';
 import { BoardThemeSpinOverlay } from '@/components/BoardThemeSpinOverlay';
-import { initializeQuestionSystem } from '@/lib/initQuestionSystem';
 import PurchaseModal from '@/components/ui/PurchaseModal';
 
 // ── Design tokens ────────────────────────────────────────────────
@@ -44,24 +43,76 @@ const AVAILABLE_COLORS: { color: PlayerColor; from: string; to: string; ring: st
 ];
 
 const QUESTION_THEME_OPTIONS: { value: QuestionTheme; label: string }[] = [
-  { value: 'general',        label: 'Umum'           },
-  { value: 'programming',    label: 'Pemrograman'    },
-  { value: 'sistem_digital', label: 'Sistem Digital' },
-  { value: 'logika_mtk',     label: 'Logika MTK'     },
-  { value: 'matematika',     label: 'Matematika'     },
-  { value: 'english',        label: 'Bahasa Inggris' },
-  { value: 'history',        label: 'Sejarah'        },
+  { value: 'sd',            label: 'SD (Pilih Mata Pelajaran)'                },
+  { value: 'smp',           label: 'SMP (Pilih Mata Pelajaran)'               },
+  { value: 'sma_smk',       label: 'SMA/SMK (Pilih Mata Pelajaran)'           },
+  { value: 'general',       label: 'Umum'                     },
+  { value: 'programming',   label: 'Pemrograman'              },
+  { value: 'sistem_digital',label: 'Sistem Digital'           },
+  { value: 'logika_mtk',    label: 'Logika MTK'               },
+  { value: 'matematika',    label: 'Matematika'               },
+  { value: 'english',       label: 'Bahasa Inggris'           },
+  { value: 'history',       label: 'Sejarah'                  },
 ];
 
+// Short name dictionary for long labels (kamus)
+const SHORT_NAME_MAP: Record<string, string> = {
+  'Bahasa Indonesia': 'B. Indo',
+  'Ilmu Pengetahuan Alam': 'IPA',
+  'Ilmu Pengetahuan Sosial': 'IPS',
+  'Sistem Digital': 'Sist. Dig',
+  'Pemrograman dan ilmu komputer': 'Pemrograman',
+  'Matematika dan perhitungan': 'Matematika',
+};
+
+function shortenLabel(label: string, max = 14) {
+  if (SHORT_NAME_MAP[label]) return SHORT_NAME_MAP[label];
+  if (label.length <= max) return label;
+  return label.slice(0, max - 1) + '…';
+}
+
+// Subject lists per grade
+const SUBJECTS_BY_GRADE: Record<string, { value: QuestionTheme; label: string }[]> = {
+  sd: [
+    { value: 'bahasa_indonesia', label: 'Bahasa Indonesia' },
+    { value: 'matematika', label: 'Matematika' },
+    { value: 'ipa', label: 'IPA' },
+    { value: 'ips', label: 'IPS' },
+    { value: 'english', label: 'Bahasa Inggris' },
+    { value: 'history', label: 'Sejarah' },
+  ],
+  smp: [
+    { value: 'bahasa_indonesia', label: 'Bahasa Indonesia' },
+    { value: 'matematika', label: 'Matematika' },
+    { value: 'ipa', label: 'IPA' },
+    { value: 'ips', label: 'IPS' },
+    { value: 'ppkn', label: 'PPKn' },
+    { value: 'english', label: 'Bahasa Inggris' },
+    { value: 'history', label: 'Sejarah' },
+  ],
+  sma_smk: [
+    { value: 'matematika', label: 'Matematika' },
+    { value: 'fisika', label: 'Fisika' },
+    { value: 'kimia', label: 'Kimia' },
+    { value: 'programming', label: 'Pemrograman' },
+    { value: 'history', label: 'Sejarah' },
+    { value: 'broadcasting', label: 'Broadcasting' },
+    { value: 'informatika', label: 'Informatika' },
+    { value: 'tkj', label: 'TKJ' },
+    { value: 'desain_grafis', label: 'Desain Grafis' },
+  ],
+};
+
 // ─── Step machinery ────────────────────────────────────────────────
-const STEPS = ['players-count', 'players-config', 'question-theme', 'board-theme'] as const;
+const STEPS = ['players-count', 'players-config', 'question-grade', 'question-subject', 'board-theme'] as const;
 type Step = typeof STEPS[number];
 
 const STEP_LABELS: Record<Step, string> = {
-  'players-count':  'Pemain',
-  'players-config': 'Warna & Nama',
-  'question-theme': 'Tema',
-  'board-theme':    'Peta Papan',
+  'players-count':  '1',
+  'players-config': '2',
+  'question-grade': '3',
+  'question-subject': '4',
+  'board-theme':    '5',
 };
 
 const slideVariants = {
@@ -83,6 +134,7 @@ export const GameSetup = ({ mode = 'offline' }: GameSetupProps) => {
   const [stepIndex,      setStepIndex]      = useState(0);
   const [direction,      setDirection]      = useState(1);
   const [questionTheme,  setQuestionTheme]  = useState<QuestionTheme>('general');
+  const [selectedGrade,  setSelectedGrade]  = useState<QuestionTheme | null>(null);
   const [boardTheme,     setBoardTheme]     = useState<SelectableBoardThemeName>('classic');
   const [playerCount,    setPlayerCount]    = useState(0);
   const [selectedColors, setSelectedColors] = useState<(PlayerColor | null)[]>([]);
@@ -98,9 +150,6 @@ export const GameSetup = ({ mode = 'offline' }: GameSetupProps) => {
   const [hoveredBoard, setHoveredBoard] = useState<string | null>(null);
 
   useEffect(() => {
-    initializeQuestionSystem().catch(err => {
-      console.error('Failed to initialize question system:', err);
-    });
     (async () => {
       try {
         const supabase = (await import('@/lib/supabase/client')).default;
@@ -119,7 +168,10 @@ export const GameSetup = ({ mode = 'offline' }: GameSetupProps) => {
   const currentStep: Step = STEPS[stepIndex];
 
   const goNext = () => {
-    if (stepIndex < STEPS.length - 1) { setDirection(1);  setStepIndex(i => i + 1); }
+    if (currentStep === 'players-config' && !allColorsSelected) return;
+    if (currentStep === 'question-grade' && !selectedGrade) return;
+    if (currentStep === 'question-subject' && !(selectedGrade ? SUBJECTS_BY_GRADE[selectedGrade].some(s => s.value === questionTheme) : false)) return;
+    if (stepIndex < STEPS.length - 1) { setDirection(1); setStepIndex(i => i + 1); }
   };
   const goBack = () => {
     if (stepIndex > 0) { setDirection(-1); setStepIndex(i => i - 1); }
@@ -189,7 +241,7 @@ export const GameSetup = ({ mode = 'offline' }: GameSetupProps) => {
     return [...humans, ...bots];
   };
 
-  const handleStartGame = () => {
+  const handleStartGame = async () => {
     if (selectedColors.includes(null)) return;
     if (boardTheme === 'random') {
       const freeNames = BOARD_THEME_LIST.slice(0, 2).map(t => t.name);
@@ -200,12 +252,28 @@ export const GameSetup = ({ mode = 'offline' }: GameSetupProps) => {
         : filtered[Math.floor(Math.random() * filtered.length)] as any);
       return;
     }
+    try {
+      const { initializeQuestionSystem } = await import('@/lib/initQuestionSystem');
+      initializeQuestionSystem().catch((err) => {
+        console.error('Failed to initialize question system at game start:', err);
+      });
+    } catch (err) {
+      console.error('Failed to import question system at game start:', err);
+    }
     initGame(buildPlayers(), questionTheme, boardTheme);
     router.push(isComputerMode ? '/vs-ai/game?countdown=3' : '/offline/game?countdown=3');
   };
 
-  const handleSpinDone = () => {
+  const handleSpinDone = async () => {
     if (!spinResult) return;
+    try {
+      const { initializeQuestionSystem } = await import('@/lib/initQuestionSystem');
+      initializeQuestionSystem().catch((err) => {
+        console.error('Failed to initialize question system at game start:', err);
+      });
+    } catch (err) {
+      console.error('Failed to import question system at game start:', err);
+    }
     initGame(buildPlayers(), questionTheme, spinResult);
     router.push(isComputerMode ? '/vs-ai/game?countdown=3' : '/offline/game?countdown=3');
   };
@@ -277,6 +345,7 @@ export const GameSetup = ({ mode = 'offline' }: GameSetupProps) => {
 
   const allColorsSelected = selectedColors.every(c => c !== null);
   const selectedCount     = selectedColors.filter(c => c !== null).length;
+  const isSubjectSelected = selectedGrade ? SUBJECTS_BY_GRADE[selectedGrade].some(s => s.value === questionTheme) : false;
 
   return (
     <div className="relative min-h-screen flex flex-col overflow-hidden" style={{ background: '#2B1B0F' }}>
@@ -325,6 +394,40 @@ export const GameSetup = ({ mode = 'offline' }: GameSetupProps) => {
             >
                 {isComputerMode ? 'SETUP VS KOMPUTER' : 'SETUP PERMAINAN'}
             </h1>
+          </div>
+        </div>
+
+        {/* Step indicator */}
+        <div className="mb-4">
+          <div className="flex items-center justify-start gap-2 px-2 flex-nowrap overflow-hidden">
+            {STEPS.map((s, idx) => {
+              const active = idx === stepIndex;
+              const done = idx < stepIndex;
+              return (
+                <button
+                  key={s}
+                  onClick={() => {
+                    if (idx <= stepIndex) {
+                      setDirection(idx > stepIndex ? 1 : -1);
+                      setStepIndex(idx);
+                    }
+                  }}
+                  className={`py-3 px-4 rounded-2xl font-bold text-base uppercase transition-all transform hover:scale-105 select-none`}
+                  onMouseEnter={e => { if (!active) (e.currentTarget.style.background = ACCENT_TINT); }}
+                  onMouseLeave={e => { if (!active) (e.currentTarget.style.background = BOARD); }}
+                  style={{
+                    background: active ? ACCENT : BOARD,
+                    color: active ? WOOD_DARK : INK,
+                    border: `3px solid ${active ? ACCENT_DEEP : WOOD}`,
+                    boxShadow: active ? `3px 3px 0 ${ACCENT_DEEP}` : `3px 3px 0 ${WOOD_DARK}`,
+                    flex: '1 1 22%',
+                    minWidth: 0,
+                  }}
+                >
+                  <div className="text-sm font-semibold truncate text-center w-full" title={STEP_LABELS[s]} style={{ lineHeight: '1' }}>{shortenLabel(STEP_LABELS[s])}</div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -485,30 +588,44 @@ export const GameSetup = ({ mode = 'offline' }: GameSetupProps) => {
                 </div>
               )}
 
-              {/* ── Step 3: Tema Pertanyaan ── */}
-              {currentStep === 'question-theme' && (
+              {/* ── Step: Pilih Tingkat (grade) ── */}
+              {currentStep === 'question-grade' && (
                 <div className="max-w-xl mx-auto w-full">
                   <p
                     className="text-center font-semibold mb-6 uppercase tracking-wider text-sm"
                     style={{ color: WOOD_LIGHT }}
                   >
-                    Pilih Tema Pertanyaan
+                    Pilih Tingkat Sekolah
                   </p>
                   <div className="grid grid-cols-2 gap-3">
-                    {QUESTION_THEME_OPTIONS.map(opt => {
+                    {['sd','smp','sma_smk'].map(g => {
+                      const label = QUESTION_THEME_OPTIONS.find(q => q.value === g)?.label || g;
+                      const active = selectedGrade === (g as QuestionTheme);
+                      return (
+                        <button key={g} onClick={() => { setSelectedGrade(g as QuestionTheme); setDirection(1); setStepIndex(i => STEPS.indexOf('question-subject')); }}
+                          className="py-4 px-3 rounded-2xl font-bold transition-all transform hover:scale-[1.02]"
+                          style={{ background: active ? ACCENT_TINT : BOARD, border: `3px solid ${active ? ACCENT_DEEP : WOOD}`, color: active ? ACCENT_DEEP : INK, boxShadow: active ? `3px 3px 0 ${ACCENT_DEEP}` : `3px 3px 0 ${WOOD_DARK}` }}>
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Step: Pilih Mata Pelajaran sesuai grade ── */}
+              {currentStep === 'question-subject' && (
+                <div className="max-w-xl mx-auto w-full">
+                  <p className="text-center font-semibold mb-6 uppercase tracking-wider text-sm" style={{ color: WOOD_LIGHT }}>
+                    Pilih Mata Pelajaran ({selectedGrade})
+                  </p>
+                  <div className="grid grid-cols-2 gap-3">
+                    {(selectedGrade ? SUBJECTS_BY_GRADE[selectedGrade] : []).map(opt => {
                       const active = questionTheme === opt.value;
                       return (
-                        <button
-                          key={opt.value}
-                          onClick={() => setQuestionTheme(opt.value)}
+                        <button key={opt.value} onClick={() => { setQuestionTheme(opt.value); }}
                           className="py-4 px-3 rounded-2xl font-bold transition-all transform hover:scale-[1.02]"
-                          style={{
-                            background: active ? ACCENT_TINT : BOARD,
-                            border:     `3px solid ${active ? ACCENT_DEEP : WOOD}`,
-                            color:       active ? ACCENT_DEEP : INK,
-                            boxShadow:   active ? `3px 3px 0 ${ACCENT_DEEP}` : `3px 3px 0 ${WOOD_DARK}`,
-                          }}
-                        >
+                          style={{ background: active ? ACCENT_TINT : BOARD, border: `3px solid ${active ? ACCENT_DEEP : WOOD}`, color: active ? ACCENT_DEEP : INK, boxShadow: active ? `3px 3px 0 ${ACCENT_DEEP}` : `3px 3px 0 ${WOOD_DARK}` }}>
                           {opt.label}
                         </button>
                       );
@@ -650,8 +767,8 @@ export const GameSetup = ({ mode = 'offline' }: GameSetupProps) => {
           </AnimatePresence>
         </div>
 
-        {/* Footer nav (players-config & question-theme) */}
-        {(currentStep === 'players-config' || currentStep === 'question-theme') && (
+        {/* Footer nav (players-config, question-grade & question-subject) */}
+        {(currentStep === 'players-config' || currentStep === 'question-grade' || currentStep === 'question-subject') && (
           <div className="max-w-2xl mx-auto w-full flex gap-3 pt-6">
             <button
               onClick={goBack}
@@ -667,10 +784,16 @@ export const GameSetup = ({ mode = 'offline' }: GameSetupProps) => {
             </button>
             <button
               onClick={goNext}
-              disabled={currentStep === 'players-config' && !allColorsSelected}
+              disabled={
+                (currentStep === 'players-config' && !allColorsSelected) ||
+                (currentStep === 'question-grade' && !selectedGrade) ||
+                (currentStep === 'question-subject' && !isSubjectSelected)
+              }
               className="flex-1 py-3.5 px-6 rounded-2xl font-extrabold uppercase tracking-wider text-base transition-all transform flex items-center justify-center gap-2"
               style={
-                currentStep === 'players-config' && !allColorsSelected
+                (currentStep === 'players-config' && !allColorsSelected) ||
+                (currentStep === 'question-grade' && !selectedGrade) ||
+                (currentStep === 'question-subject' && !isSubjectSelected)
                   ? {
                       background: BOARD_DARK,
                       color:       WOOD_LIGHT,
