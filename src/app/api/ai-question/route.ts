@@ -160,14 +160,6 @@ async function generateWithGroq(theme: QuestionTheme, difficulty: string): Promi
 
   throw lastError instanceof Error ? lastError : new Error('Groq API request gagal');
 
-  const data = await response.json().catch(() => null);
-  const content = data?.choices?.[0]?.message?.content || data?.choices?.[0]?.text || null;
-
-  if (!content || typeof content !== 'string') {
-    throw new Error('Groq API response tidak valid or empty content');
-  }
-
-  return parseJsonContent(content);
 }
 
 async function generateWithOpenAI(theme: QuestionTheme, difficulty: string): Promise<GeneratedQuestionData> {
