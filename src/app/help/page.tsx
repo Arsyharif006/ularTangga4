@@ -197,256 +197,140 @@ export default function HelpPage() {
   const chapters: Omit<ChapterProps, 'flip'>[] = [
     {
       squareNumber: 1,
-      icon: '🎲',
-      title: 'Memulai Permainan',
+      icon: '🤖',
+      title: 'Mode VS AI',
       pawn: 'red',
       children: (
         <>
           <p>
-            Pada Mode Offline, pilih jumlah pemain (2–4 orang), tentukan nama dan warna bidak, lalu pilih tema
-            pertanyaan serta papan permainan yang ingin digunakan. Setelah semua pengaturan selesai, tekan{' '}
-            <strong style={{ color: PAWNS.red.deep }}>Mulai Game</strong>.
+            Pilih mode <strong style={{ color: PAWNS.red.deep }}>VS AI</strong> jika ingin bermain solo namun tetap terasa seru.
+            Kamu bisa memilih jumlah pemain, tema pertanyaan, dan papan yang ingin dipakai sebelum mulai.
           </p>
 
-          <p>
-            Saat giliranmu tiba, tekan tombol{' '}
-            <strong style={{ color: PAWNS.red.deep }}>Lempar Dadu</strong>.
-            Bidak akan bergerak otomatis sesuai angka yang muncul pada dadu.
-          </p>
+          <Item icon="🧠" text="AI akan menjadi lawan atau partner tambahan sesuai mode yang kamu pilih." />
 
-          <Tip>Pergerakan bidak ditampilkan langkah demi langkah agar pemain dapat mengikuti jalur yang dilewati.</Tip>
+          <Rule />
+
+          <Item icon="🎮" text="Mode ini cocok untuk latihan sebelum bermain bareng teman atau orang lain." />
+
+          <Tip>Mode VS AI sangat pas untuk berlatih strategi dan memahami alur permainan tanpa perlu menunggu lawan.</Tip>
         </>
       ),
     },
 
     {
       squareNumber: 2,
-      icon: '🐍',
-      title: 'Ular dan Tangga',
+      icon: '🧩',
+      title: 'Offline Bareng Teman',
       pawn: 'green',
       children: (
         <>
           <p className="mb-2">
-            Ular dan tangga merupakan elemen utama yang dapat mengubah posisi pemain secara cepat.
+            Mode offline cocok untuk bermain bersama teman di satu perangkat. Kamu bisa mengatur nama, warna bidak,
+            dan tema pertanyaan sebelum memulai.
           </p>
 
-          <Item
-            icon="🪜"
-            text="Tangga akan membawa pemain langsung ke posisi yang lebih tinggi ketika mendarat pada kotak awal tangga."
-          />
+          <Item icon="👥" text="Pilih 2–4 pemain agar permainan terasa lebih hidup dan seru." />
 
           <Rule />
 
-          <Item
-            icon="🐍"
-            text="Ular akan menurunkan pemain ke posisi yang lebih rendah ketika mendarat pada kepala ular."
-          />
+          <Item icon="🎲" text="Setiap giliran, tekan tombol lempar dadu dan lanjutkan tantangan sampai ada pemenang." />
 
-          <Tip>
-            Efek ular dapat dibatalkan menggunakan item Anti Ular yang tersedia di inventaris.
-          </Tip>
+          <Tip>Mode ini paling cocok saat ingin main santai di rumah atau saat tidak ada koneksi internet.</Tip>
         </>
       ),
     },
 
     {
       squareNumber: 3,
-      icon: '❓',
-      title: 'Sistem Pertanyaan',
+      icon: '🌐',
+      title: 'Online Bareng Teman / Orang Lain',
       pawn: 'yellow',
       children: (
         <>
           <p className="mb-2">
-            Setiap pemain yang mendarat pada kotak pertanyaan harus menjawab soal dalam waktu 15 detik.
+            Untuk bermain secara real-time, masuk dengan akun Google lalu buat room atau bergabung lewat kode room.
           </p>
 
-          <Item
-            icon="✅"
-            text="Jawaban benar mempertahankan posisi pemain dan menambah jumlah streak jawaban benar."
-          />
+          <Item icon="🔑" text="Buat room baru atau gunakan kode room untuk join ke sesi yang sudah dibuat." />
 
           <Rule />
 
-          <Item
-            icon="❌"
-            text="Jawaban salah mengembalikan pemain ke posisi sebelum melempar dadu."
-          />
+          <Item icon="👑" text="Permainan dimulai setelah semua pemain siap dan room sudah lengkap." />
 
           <Rule />
 
-          <Item
-            icon="⏱️"
-            text="Waktu yang habis tanpa jawaban akan dianggap sebagai jawaban salah."
-          />
+          <Item icon="🔄" text="Giliran, posisi, dan item akan tersinkronisasi otomatis antar pemain." />
 
-          <Rule />
-
-          <Item
-            icon="🔥"
-            text="Tiga jawaban benar secara beruntun akan memberikan hadiah berupa satu item acak."
-          />
-
-          <Tip>
-            Memilih tema yang dikuasai dapat meningkatkan peluang mendapatkan streak dan item bonus.
-          </Tip>
+          <Tip>Gunakan koneksi internet yang stabil agar permainan tetap lancar saat bermain online.</Tip>
         </>
       ),
     },
 
     {
       squareNumber: 4,
-      icon: '⚡',
-      title: 'Item dan Inventaris',
+      icon: '🎁',
+      title: 'Kode Redeem',
       pawn: 'blue',
       children: (
         <>
           <p className="mb-2">
-            Setiap pemain memiliki inventaris dengan kapasitas maksimal tiga item. Item dapat diperoleh dari
-            Mystery Box atau hadiah streak.
+            Kode redeem bisa ditukar dari halaman akun untuk mendapatkan hadiah langsung ke akunmu.
           </p>
 
-          <Item icon="🛡️" text="Shield melindungi pemain dari penalti akibat jawaban salah." />
-
-          <Rule />
-
-          <Item icon="🐍" text="Anti Ular membatalkan efek ular saat pemain mendarat pada kepala ular." />
-
-          <Rule />
-
-          <Item icon="🎲" text="Dadu Emas memungkinkan pemain menentukan sendiri angka dadu yang akan digunakan." />
-
-          <Rule />
-
-          <Item icon="💡" text="Hint menghilangkan satu pilihan jawaban yang salah." />
-
-          <Rule />
-
-          <Item icon="⏸️" text="Freeze Timer menghentikan sementara hitungan waktu menjawab." />
-
-          <Rule />
-
-          <Item icon="⏭️" text="Skip Turn membuat lawan kehilangan satu giliran." />
-
-          <Rule />
-
-          <Item icon="👈" text="Push Back mengembalikan lawan ke posisi sebelumnya." />
-
-          <Rule />
-
-          <Item icon="🌪️" text="Swap Position menukar posisi dengan pemain lain sesuai syarat jarak yang ditentukan." />
-
-          <Rule />
-
-          <Item icon="💣" text="Bomb Trap memasang jebakan yang akan memberikan penalti kepada pemain yang menginjaknya." />
-
-          <Tip>
-            Gunakan item pada waktu yang tepat untuk mendapatkan keuntungan maksimal selama permainan.
-          </Tip>
+          <Tip>Setiap kode hanya bisa dipakai sekali per akun, jadi pakai dengan bijak.</Tip>
         </>
       ),
     },
 
     {
       squareNumber: 5,
-      icon: '🏆',
-      title: 'Kondisi Kemenangan',
+      icon: '🧠',
+      title: 'Sistem Pertanyaan dan Item',
       pawn: 'red',
       children: (
         <>
           <p className="mb-2">
-            Pemain pertama yang mencapai kotak{' '}
-            <strong style={{ color: PAWNS.red.deep }}>100 </strong>
-            akan memenangkan permainan.
+            Saat pemain mendarat di kotak pertanyaan, mereka harus menjawab soal dalam waktu terbatas.
           </p>
 
-          <Item
-            icon="🎯"
-            text="Jika jumlah langkah melebihi kotak 100, posisi pemain akan dipantulkan kembali sesuai sisa langkah."
-          />
+          <Item icon="✅" text="Jawaban benar menjaga posisi dan bisa memicu streak yang lebih panjang." />
 
           <Rule />
 
-          <Item
-            icon="📈"
-            text="Menjaga konsistensi dalam menjawab pertanyaan dapat mempercepat perjalanan menuju garis akhir."
-          />
+          <Item icon="🛡️" text="Item seperti shield, hint, dan freeze timer bisa membantu saat situasi sulit." />
 
-          <Tip>
-            Strategi yang baik dan penggunaan item yang tepat sering kali lebih menentukan daripada keberuntungan dadu.
-          </Tip>
+          <Rule />
+
+          <Item icon="🔥" text="Streak yang bagus bisa membuka hadiah dan membuat permainan lebih menegangkan." />
+
+          <Tip>Pilih tema pertanyaan yang paling kamu kuasai agar peluang menang lebih besar.</Tip>
         </>
       ),
     },
 
     {
       squareNumber: 6,
-      icon: '🌐',
-      title: 'Mode Online',
+      icon: '🏆',
+      title: 'Koin, Peta, dan Avatar',
       pawn: 'green',
       children: (
         <>
           <p className="mb-2">
-            Bermain bersama teman secara real-time melalui jaringan internet.
+            Koin bisa kamu gunakan untuk membuka peta baru dan avatar tambahan. Progress ini tersimpan ke akunmu jika kamu login.
           </p>
 
-          <Item
-            icon="🔑"
-            text="Masuk menggunakan akun Google, lalu buat room atau gabung menggunakan kode room."
-          />
+          <Item icon="🪙" text="Koin bisa didapat dari sesi online dan dipakai untuk berbagai unlock." />
 
           <Rule />
 
-          <Item
-            icon="👑"
-            text="Permainan dimulai setelah seluruh pemain berada di room dan siap bermain."
-          />
+          <Item icon="🗺️" text="Peta baru membuka suasana permainan yang berbeda-beda." />
 
           <Rule />
 
-          <Item
-            icon="🔄"
-            text="Semua pergerakan, giliran, dan penggunaan item akan disinkronkan secara otomatis."
-          />
+          <Item icon="👤" text="Avatar limited bisa dibuka lewat kode redeem dan dipakai di profil." />
 
-          <Rule />
-
-          <Item
-            icon="⚠️"
-            text="Saat koneksi terputus, sistem akan mencoba menghubungkan kembali pemain secara otomatis."
-          />
-
-          <Tip>
-            Gunakan koneksi internet yang stabil agar permainan berlangsung tanpa gangguan.
-          </Tip>
-        </>
-      ),
-    },
-
-    /* ── NEW: Coin System chapter ── */
-    {
-      squareNumber: 7,
-      icon: '💰',
-      title: 'Sistem Koin',
-      pawn: 'yellow',
-      children: (
-        <>
-          <p className="mb-2">
-            Koin adalah mata uang dalam game yang hanya bisa diperoleh dari{' '}
-            <strong style={{ color: PAWNS.yellow.deep }}>Mode Online</strong>.
-            Kumpulkan koin untuk membuka papan baru dan avatar lucu di toko!
-          </p>
-
-          <Item icon="🏆" text="Menang pertandingan online memberikan +2 koin." />
-
-          <Rule />
-
-          <Item icon="🥈" text="Kalah pertandingan online tetap memberikan +1 koin — jadi terus main!" />
-
-          <Rule />
-
-          <Tip>
-            Menang atau kalah, kamu selalu dapat koin. Main lebih banyak sesi online untuk mengumpulkan koleksi lebih cepat!
-          </Tip>
+          <Tip>Jangan lupa cek halaman profil dan akun untuk melihat koleksi yang sudah kamu miliki.</Tip>
         </>
       ),
     },
@@ -556,40 +440,7 @@ export default function HelpPage() {
           </div>
 
           {/* ── footer: finish square ── */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: '-40px' }}
-            transition={{ duration: 0.4 }}
-            className="mt-7 relative overflow-hidden"
-            style={{
-              background: 'repeating-conic-gradient(#1f1f1f 0% 25%, #f4f4f4 0% 50%) 0 0 / 16px 16px',
-              border: `4px solid ${WOOD}`,
-              borderRadius: 16,
-              boxShadow: `5px 5px 0 ${WOOD_DARK}`,
-            }}
-          >
-            <div className="p-5" style={{ background: 'rgba(239,223,184,0.94)' }}>
-              <p className="text-xs leading-relaxed mb-4 font-bold" style={{ color: INK }}>
-                <span style={{ color: PAWNS.red.deep }}>🏁 Ingat:</span> Setiap permainan berbeda. Jangan takut
-                bereksperimen — strategi terbaik lahir dari pengalaman!
-              </p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="p-3" style={{ background: PAWNS.blue.tint, border: `2px solid ${PAWNS.blue.base}`, borderRadius: 10 }}>
-                  <p className="font-black text-xs mb-1" style={{ color: PAWNS.blue.deep }}>📚 Belajar Terus</p>
-                  <p className="text-[11px] leading-snug" style={{ color: PAWNS.blue.deep, opacity: 0.8 }}>
-                    Tiap kategori pertanyaan perluas wawasanmu.
-                  </p>
-                </div>
-                <div className="p-3" style={{ background: PAWNS.green.tint, border: `2px solid ${PAWNS.green.base}`, borderRadius: 10 }}>
-                  <p className="font-black text-xs mb-1" style={{ color: PAWNS.green.deep }}>🎮 Main Sekarang</p>
-                  <p className="text-[11px] leading-snug" style={{ color: PAWNS.green.deep, opacity: 0.8 }}>
-                    Kembali ke menu dan mulai petualanganmu!
-                  </p>
-                </div>
-              </div>
-            </div>
-          </motion.div>
+       
         </div>
       </div>
     </div>

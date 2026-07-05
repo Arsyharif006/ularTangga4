@@ -1,0 +1,10 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="72" fill="#F7F3E8"/>
+  <rect x="64" y="64" width="384" height="384" rx="48" fill="#FFFDF7" stroke="#7A4A26" stroke-width="12"/>
+  <circle cx="256" cy="210" r="108" fill="#D9E6F7" stroke="#1D5FB8" stroke-width="10"/>
+  <path d="M180 290 L256 160 L332 290" fill="none" stroke="#1D5FB8" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M210 290 H302" stroke="#1D5FB8" stroke-width="16" stroke-linecap="round"/>
+  <path d="M176 332 H336" stroke="#7A4A26" stroke-width="14" stroke-linecap="round"/>
+  <path d="M182 366 H330" stroke="#7A4A26" stroke-width="10" stroke-linecap="round"/>
+  <text x="256" y="438" text-anchor="middle" font-family="Arial, sans-serif" font-size="38" font-weight="700" fill="#7A4A26">UNINDRA</text>
+</svg>

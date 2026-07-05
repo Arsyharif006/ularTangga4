@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {
   ChevronLeft,
@@ -14,6 +15,9 @@ import {
   Music,
   Zap,
   Globe,
+  Gift,
+  Sparkles,
+  X,
 } from 'lucide-react';
 import supabase from '@/lib/supabase/client';
 import { useAudio } from '@/lib/audio/AudioProvider';
@@ -35,11 +39,22 @@ const ACCENT_TINT = '#FBEACB';
 const LABEL_STYLE = { fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.18em', color: WOOD_LIGHT, fontWeight: 600 };
 const SECTION_TITLE_STYLE = { fontSize: '12px', fontWeight: 700, color: WOOD, textTransform: 'uppercase', letterSpacing: '0.18em', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' };
 
-const ANIMAL_EMOJIS = ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐢','🐍','🐴','🦄','🐝','🐙','🦋','🦀','🐬'];
+const ANIMAL_EMOJIS = ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐧','🐢','🐍','🐴','🐝','🐙','🦀','🐬'];
+const LIMITED_AVATAR_EMOJIS = ['🦄','🦋','🌟','👑'];
+const DEFAULT_UNLOCKED_AVATARS = ['🐶','🐱','🐭','🐹','🐰','🦊'];
+const DEFAULT_UNLOCKED_BOARDS = ['classic','winter'];
 
 const TRACKS = [
   { id: 0, name: 'Battle March',   artist: 'Epic Adventure', emoji: '⚔️', genre: 'Action',   dur: '2:15' },
   { id: 1, name: 'Snake & Ladder', artist: 'Playful Beats',  emoji: '🎲', genre: 'Cheerful', dur: '1:58' },
+];
+
+const CREDIT_SECTIONS = [
+  { title: 'Pembuat', lines: ['Penyusun', 'Muhammad Arya Ramadhan', 'Designer', 'Muhammad Arya Ramadhan, Muhammad Dhaffa', 'Programmer', 'Muhammad Arya Ramadhan', 'Analisis Sistem', 'Muhammad Arya Ramadhan, Muhammad Alif Raihandi, Muhammad Dhaffa'] },
+  { title: 'Tim', lines: [' Kelompok 4', 'Anggota Tim', 'Muhammad Arya Ramadhan, Muhammad Alif Raihandi, Muhammad Dhaffa','Rafifah Luthfiyah Putri, Agnia Zahrah Wibowo','Andhika Putra, Aidil', 'Peran dan kontribusi setiap anggota'] },
+  { title: 'Dukungan', lines: ['Dosen : Ahmad Fauzi M.Kom. ', 'Feedback dan balancing.'] },
+  { title: 'Institusi', lines: ['Universitas Indraprasta PGRI', 'Dukungan institusi dan semangat akademik.'] },
+  { title: 'Ucapan', lines: ['Terima kasih untuk semua teman, rekan, dan pengguna.', 'Semoga aplikasi ini bermanfaat dan menyenangkan.'] },
 ];
 
 // ── Equaliser bars ───────────────────────────────────────────
@@ -117,7 +132,7 @@ export const Settings = () => {
   const settings = useSettingsStore();
 
   const [username, setUsername]               = useState('Guest');
-  const [avatarIdx, setAvatarIdx]             = useState(0);
+  const [activeAvatar, setActiveAvatar]       = useState('🐶');
   const [coins, setCoins]                     = useState(0);
   const [unlockedAvatars, setUnlockedAvatars] = useState<string[]>([]);
   const [unlockedBoards, setUnlockedBoards]   = useState<string[]>([]);
@@ -138,6 +153,11 @@ export const Settings = () => {
   const [activeTab, setActiveTab]             = useState('profile');
   const [showNameModal, setShowNameModal]     = useState(false);
   const [inputName, setInputName]             = useState(username);
+  const [redeemCode, setRedeemCode]           = useState('');
+  const [redeemBusy, setRedeemBusy]           = useState(false);
+  const [redeemMessage, setRedeemMessage]     = useState('');
+  const [rewardModal, setRewardModal]         = useState<{ title: string; description: string; icon: string } | null>(null);
+  const [showCreditsOverlay, setShowCreditsOverlay] = useState(false);
 
   const [activeTrackId, setActiveTrackId] = useState(settings.track ?? 0);
   const [isPlaying, setIsPlaying]         = useState(false);
@@ -162,6 +182,31 @@ export const Settings = () => {
     const parts = str.split(':').map((p) => Number(p));
     if (parts.length === 2) return parts[0] * 60 + parts[1];
     return Number(str) || 0;
+  };
+
+  const normalizeStringArray = (value: unknown): string[] => {
+    if (!Array.isArray(value)) return [];
+    return value.filter((item): item is string => typeof item === 'string' && item.length > 0);
+  };
+
+  const saveAvatarSelection = async (avatar: string) => {
+    try {
+      const { data } = await supabase.auth.getSession();
+      const user = data?.session?.user;
+      if (!user) return false;
+
+      await supabase.from('user_stats').upsert({
+        user_id: user.id,
+        avatar,
+        email: user.email || null,
+      }).select();
+
+      setActiveAvatar(avatar);
+      return true;
+    } catch (err) {
+      console.error('Failed to save avatar selection', err);
+      return false;
+    }
   };
 
   const handleSaveName = () => {
@@ -203,21 +248,24 @@ export const Settings = () => {
             const dbName            = (stats as any)?.name;
             const dbAvatar          = (stats as any)?.avatar;
             const dbCoins           = (stats as any)?.coins ?? 0;
-            const dbUnlockedAvatars = (stats as any)?.unlocked_avatars ?? ['🐶','🐱','🐭','🐹','🐰','🦊'];
-            const dbUnlockedBoards  = (stats as any)?.unlocked_boards ?? ['classic','winter'];
+            const dbUnlockedAvatars = normalizeStringArray((stats as any)?.unlocked_avatars).length > 0
+              ? normalizeStringArray((stats as any)?.unlocked_avatars)
+              : DEFAULT_UNLOCKED_AVATARS;
+            const dbUnlockedBoards  = normalizeStringArray((stats as any)?.unlocked_boards).length > 0
+              ? normalizeStringArray((stats as any)?.unlocked_boards)
+              : DEFAULT_UNLOCKED_BOARDS;
             const fallback          = (user.user_metadata as any)?.full_name || user.email?.split('@')[0] || '';
             const finalName         = dbUsername || dbName || fallback;
             setAccountName(finalName);
             setUsername(finalName);
             setInputName(finalName);
-            const idx = dbAvatar ? ANIMAL_EMOJIS.indexOf(dbAvatar) : -1;
-            setAvatarIdx(idx >= 0 ? idx : 0);
+            setActiveAvatar(dbAvatar || '🐶');
             setCoins(dbCoins);
             setUnlockedAvatars(dbUnlockedAvatars);
             setUnlockedBoards(dbUnlockedBoards);
           } catch {
             const fallback = (user.user_metadata as any)?.full_name || user.email?.split('@')[0] || '';
-            setAccountName(fallback); setUsername(fallback); setInputName(fallback); setAvatarIdx(0);
+            setAccountName(fallback); setUsername(fallback); setInputName(fallback); setActiveAvatar('🐶');
           }
         } else {
           setIsAuthenticated(false); setGoogleEmail(''); setAccountName('');
@@ -232,6 +280,126 @@ export const Settings = () => {
     { id: 'sound',   label: 'Suara',   Icon: Volume2 },
     { id: 'account', label: 'Akun',    Icon: Mail    },
   ];
+
+  const handleRedeemCode = async () => {
+    const code = redeemCode.trim().toUpperCase();
+    if (!code) {
+      setRedeemMessage('Masukkan kode redeem terlebih dahulu.');
+      return;
+    }
+
+    try {
+      const { data } = await supabase.auth.getSession();
+      const user = data?.session?.user;
+      if (!user) {
+        setRedeemMessage('Silakan masuk dengan Google sebelum menukar kode.');
+        return;
+      }
+
+      setRedeemBusy(true);
+      setRedeemMessage('');
+
+      const { data: codeRow, error: codeError } = await supabase
+        .from('redeem_codes')
+        .select('code, reward_type, reward_value, reward_meta, description, active')
+        .eq('code', code)
+        .maybeSingle();
+
+      if (codeError || !codeRow || codeRow.active === false) {
+        setRedeemMessage('Kode tidak valid atau sudah tidak aktif.');
+        return;
+      }
+
+      const rewardType = String(codeRow.reward_type || 'coins');
+      const rewardValue = Number(codeRow.reward_value ?? 0);
+      const rewardMeta = normalizeStringArray(codeRow.reward_meta);
+      const rewardDescription = String(codeRow.description || 'Hadiah berhasil diklaim.');
+
+      const { data: existingRedemption } = await supabase
+        .from('redeem_redemptions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('code', code)
+        .maybeSingle();
+
+      if (existingRedemption) {
+        setRedeemMessage('Kode ini sudah pernah kamu tukarkan sebelumnya.');
+        return;
+      }
+
+      const { data: stats } = await supabase
+        .from('user_stats')
+        .select('coins, unlocked_avatars, unlocked_boards')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const currentCoins = Number((stats as any)?.coins ?? 0);
+      const currentUnlockedAvatars = normalizeStringArray((stats as any)?.unlocked_avatars).length > 0
+        ? normalizeStringArray((stats as any)?.unlocked_avatars)
+        : DEFAULT_UNLOCKED_AVATARS;
+      const currentUnlockedBoards = normalizeStringArray((stats as any)?.unlocked_boards).length > 0
+        ? normalizeStringArray((stats as any)?.unlocked_boards)
+        : DEFAULT_UNLOCKED_BOARDS;
+
+      let nextCoins = currentCoins;
+      let nextUnlockedAvatars = [...currentUnlockedAvatars];
+      let nextUnlockedBoards = [...currentUnlockedBoards];
+      let nextAvatar = activeAvatar;
+      let popupTitle = 'Kode berhasil ditukar';
+      let popupDescription = rewardDescription;
+      let popupIcon = '🎁';
+
+      if (rewardType === 'coins') {
+        nextCoins = currentCoins + rewardValue;
+        popupTitle = 'Koin gratis diterima';
+        popupDescription = `Kamu menerima ${rewardValue} koin gratis.`;
+        popupIcon = '🪙';
+      } else if (rewardType === 'boards') {
+        const boardRewards = rewardMeta.length > 0 ? rewardMeta : ['classic','winter','forest','lava','space'];
+        nextUnlockedBoards = Array.from(new Set([...currentUnlockedBoards, ...boardRewards]));
+        popupTitle = 'Semua peta terbuka';
+        popupDescription = 'Peta baru sudah bisa kamu pilih sekarang.';
+        popupIcon = '🗺️';
+      } else if (rewardType === 'avatars') {
+        const avatarRewards = rewardMeta.length > 0 ? rewardMeta : LIMITED_AVATAR_EMOJIS;
+        nextUnlockedAvatars = Array.from(new Set([...currentUnlockedAvatars, ...avatarRewards]));
+        nextAvatar = avatarRewards[0] || nextAvatar;
+        popupTitle = 'Avatar limited terbuka';
+        popupDescription = 'Avatar limited baru sudah siap dipakai.';
+        popupIcon = '✨';
+      }
+
+      await supabase.from('user_stats').upsert({
+        user_id: user.id,
+        email: user.email || null,
+        avatar: nextAvatar,
+        coins: nextCoins,
+        unlocked_avatars: nextUnlockedAvatars,
+        unlocked_boards: nextUnlockedBoards,
+      }).select();
+
+      await supabase.from('redeem_redemptions').insert({
+        user_id: user.id,
+        code,
+        reward_type: rewardType,
+        reward_value: rewardValue,
+        reward_meta: rewardMeta,
+      });
+
+      setCoins(nextCoins);
+      setUnlockedAvatars(nextUnlockedAvatars);
+      setUnlockedBoards(nextUnlockedBoards);
+      setActiveAvatar(nextAvatar);
+      setRedeemCode('');
+      setRedeemMessage('Kode berhasil ditukar!');
+      setRewardModal({ title: popupTitle, description: popupDescription, icon: popupIcon });
+    } catch (err) {
+      console.error('Failed to redeem code', err);
+      setRedeemMessage('Gagal menukar kode. Coba lagi sebentar.');
+    } finally {
+      setRedeemBusy(false);
+    }
+  };
 
   const handlePlayTrack = (id: number) => {
     setActiveTrackId(id);
@@ -343,146 +511,192 @@ export const Settings = () => {
         >
 
           {/* ══ PROFILE TAB ══════════════════════════════════ */}
-          {activeTab === 'profile' && <>
-
-            <div className="p-5 rounded-2xl" style={{ background: BOARD, border: `3px solid ${WOOD}`, boxShadow: `3px 3px 0 ${WOOD_DARK}` }}>
-              <p style={SECTION_TITLE_STYLE}><User className="w-3.5 h-3.5" /> Nama Profil</p>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-bold text-base" style={{ color: INK }}>{username}</p>
-                  <p style={{...LABEL_STYLE, marginTop: '4px'}}>Nama yang tampil di papan peringkat</p>
-                </div>
-                <button
-                  onClick={async () => {
-                    try {
-                      const { data } = await supabase.auth.getSession();
-                      const user = data?.session?.user;
-                      if (!user) {
-                        setPurchaseMeta({
-                          title: 'Perlu Masuk',
-                          description: 'Silakan masuk dengan Google untuk mengubah nama.',
-                          onConfirm: () => { setPurchaseOpen(false); router.push('/online/login'); },
-                        });
-                        setPurchaseOpen(true);
-                        return;
-                      }
-                    } catch (err) { /* ignore */ }
-                    setInputName(username); setShowNameModal(true);
-                  }}
-                  className="px-4 py-2 text-xs font-bold rounded-xl transition-all uppercase tracking-wider"
-                  style={{ background: WOOD, color: BOARD, border: `2px solid ${WOOD_DARK}`, boxShadow: `2px 2px 0 ${WOOD_DARK}` }}
-                >
-                  Ubah
-                </button>
-              </div>
-            </div>
-
-            <div className="p-5 rounded-2xl flex items-center gap-5" style={{ background: BOARD, border: `3px solid ${WOOD}`, boxShadow: `3px 3px 0 ${WOOD_DARK}` }}>
-              <div
-                className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shrink-0"
-                style={{ background: BOARD_DARK, border: `3px solid ${WOOD}`, boxShadow: `2px 2px 0 ${WOOD_DARK}` }}
-              >
-                {ANIMAL_EMOJIS[avatarIdx] || '🎮'}
-              </div>
-              <div>
-                <p className="font-bold" style={{ color: INK }}>{username}</p>
-                  <p style={{...LABEL_STYLE, marginTop: '4px'}}>Avatar: {ANIMAL_EMOJIS[avatarIdx]}</p>
-                <p className="text-[10px] mt-1 font-semibold" style={{ color: WOOD_LIGHT }}>Pilih avatar hewan di bawah</p>
-              </div>
-            </div>
-
-              <div className="p-5 rounded-2xl flex items-center justify-between\" style={{ background: BOARD, border: `3px solid ${WOOD}`, boxShadow: `3px 3px 0 ${WOOD_DARK}` }}>
-              <div>
-                <p className="font-black text-lg\" style={{ color: ACCENT_DEEP }}>💰 {coins}</p>
-                <p style={{...LABEL_STYLE, marginTop: '4px'}}>Saldo Anda</p>
-              </div>
-              <div>
-                <p className="font-bold" style={{ color: WOOD }}>Koin</p>
-                <p style={{...LABEL_STYLE, marginTop: '4px'}}>Tukarkan Koin dengan Avatar dan Peta menarik!</p>
-              </div>
-            </div>
-
-            <div className="p-5 rounded-2xl" style={{ background: BOARD, border: `3px solid ${WOOD}`, boxShadow: `3px 3px 0 ${WOOD_DARK}` }}>
-              <p style={SECTION_TITLE_STYLE}><Palette className="w-3.5 h-3.5" /> Avatar Hewan</p>
-              <div className="grid grid-cols-6 gap-2.5 text-2xl">
-                {ANIMAL_EMOJIS.map((a, i) => {
-                  const free = i < 6;
-                  const isUnlocked = free || unlockedAvatars.includes(a);
-                  return (
-                    <button
-                      key={i}
-                      onClick={async () => {
-                        try {
-                          const { data } = await supabase.auth.getSession();
-                          const user = data?.session?.user;
-                          if (!user) {
-                            setPurchaseMeta({
-                              title: 'Perlu Masuk',
-                              description: 'Silakan masuk untuk memilih atau membuka avatar.',
-                              onConfirm: () => setPurchaseOpen(false),
-                            });
-                            setPurchaseOpen(true);
-                            return;
-                          }
-                          if (isUnlocked) {
-                            setAvatarIdx(i);
-                            await supabase.from('user_stats').upsert({ user_id: user.id, avatar: a, email: user.email || null }).select();
-                            return;
-                          }
-                          const cost = 1;
-                          if ((coins ?? 0) < cost) {
-                            setPurchaseMeta({
-                              title: 'Koin Tidak Cukup',
-                              description: 'Koin tidak cukup untuk membuka avatar ini. Menangkan permainan online untuk mendapatkan koin.',
-                              onConfirm: () => setPurchaseOpen(false),
-                            });
-                            setPurchaseOpen(true);
-                            return;
-                          }
+          {activeTab === 'profile' && (
+            <>
+              <div className="p-5 rounded-2xl" style={{ background: BOARD, border: `3px solid ${WOOD}`, boxShadow: `3px 3px 0 ${WOOD_DARK}` }}>
+                <p style={SECTION_TITLE_STYLE}><User className="w-3.5 h-3.5" /> Nama Profil</p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-bold text-base" style={{ color: INK }}>{username}</p>
+                    <p style={{ ...LABEL_STYLE, marginTop: '4px' }}>Nama yang tampil di papan peringkat</p>
+                  </div>
+                  <button
+                    onClick={async () => {
+                      try {
+                        const { data } = await supabase.auth.getSession();
+                        const user = data?.session?.user;
+                        if (!user) {
                           setPurchaseMeta({
-                            title: `Buka avatar ${a}`,
-                            description: `Konfirmasi pembelian avatar ${a} seharga ${cost} koin?`,
-                            cost,
-                            onConfirm: async () => {
-                              try {
-                                const newCoins = (coins ?? 0) - cost;
-                                const newUnlocked = Array.from(new Set([...(unlockedAvatars || []), a]));
-                                await supabase.from('user_stats').upsert({ user_id: user.id, avatar: a, coins: newCoins, unlocked_avatars: newUnlocked, email: user.email || null }).select();
-                                setCoins(newCoins);
-                                setUnlockedAvatars(newUnlocked);
-                                setAvatarIdx(i);
-                              } catch (err) { console.error('Failed to purchase avatar', err); }
-                              setPurchaseOpen(false);
-                            },
+                            title: 'Perlu Masuk',
+                            description: 'Silakan masuk dengan Google untuk mengubah nama.',
+                            onConfirm: () => { setPurchaseOpen(false); router.push('/online/login'); },
                           });
                           setPurchaseOpen(true);
-                        } catch (err) { console.error('Failed to save/unlock avatar', err); }
-                      }}
-                      className="relative aspect-square rounded-xl transition-all flex items-center justify-center text-3xl"
-                      style={{
-                        background:  avatarIdx === i ? ACCENT_TINT : BOARD_DARK,
-                        border:      `2.5px solid ${avatarIdx === i ? ACCENT_DEEP : WOOD}`,
-                        boxShadow:   `2px 2px 0 ${avatarIdx === i ? ACCENT_DEEP : WOOD_DARK}`,
-                      }}
-                      title={a}
-                    >
-                      {a}
-                      {avatarIdx === i && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black/10 rounded-xl">
-                          <Check className="w-3.5 h-3.5 text-white drop-shadow" />
-                        </div>
-                      )}
-                      {!isUnlocked && (
-                        <div className="absolute right-1 bottom-1 text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.55)', color: '#fff' }}>
-                          🔒 1
-                        </div>
-                      )}
-                    </button>
-                  );
-                })}
+                          return;
+                        }
+                      } catch (err) { /* ignore */ }
+                      setInputName(username); setShowNameModal(true);
+                    }}
+                    className="px-4 py-2 text-xs font-bold rounded-xl transition-all uppercase tracking-wider"
+                    style={{ background: WOOD, color: BOARD, border: `2px solid ${WOOD_DARK}`, boxShadow: `2px 2px 0 ${WOOD_DARK}` }}
+                  >
+                    Ubah
+                  </button>
+                </div>
               </div>
-            </div>
-          </>}
+
+              <div className="p-5 rounded-2xl flex items-center gap-5" style={{ background: BOARD, border: `3px solid ${WOOD}`, boxShadow: `3px 3px 0 ${WOOD_DARK}` }}>
+                <div
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shrink-0"
+                  style={{ background: BOARD_DARK, border: `3px solid ${WOOD}`, boxShadow: `2px 2px 0 ${WOOD_DARK}` }}
+                >
+                  {activeAvatar || '🎮'}
+                </div>
+                <div>
+                  <p className="font-bold" style={{ color: INK }}>{username}</p>
+                  <p style={{ ...LABEL_STYLE, marginTop: '4px' }}>Avatar: {activeAvatar}</p>
+                  <p className="text-[10px] mt-1 font-semibold" style={{ color: WOOD_LIGHT }}>Pilih avatar hewan di bawah</p>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-2xl flex items-center justify-between" style={{ background: BOARD, border: `3px solid ${WOOD}`, boxShadow: `3px 3px 0 ${WOOD_DARK}` }}>
+                <div>
+                  <p className="font-black text-lg" style={{ color: ACCENT_DEEP }}>🪙 {coins}</p>
+                  <p style={{ ...LABEL_STYLE, marginTop: '4px' }}>Saldo Anda</p>
+                </div>
+                <div>
+                  <p className="font-bold" style={{ color: WOOD }}>Koin</p>
+                  <p style={{ ...LABEL_STYLE, marginTop: '4px' }}>Tukarkan Koin dengan Avatar dan Peta menarik!</p>
+                </div>
+              </div>
+
+              <div className="p-5 rounded-2xl" style={{ background: BOARD, border: `3px solid ${WOOD}`, boxShadow: `3px 3px 0 ${WOOD_DARK}` }}>
+                <p style={SECTION_TITLE_STYLE}><Palette className="w-3.5 h-3.5" /> Avatar Hewan</p>
+                <div className="grid grid-cols-6 gap-2.5 text-2xl">
+                  {ANIMAL_EMOJIS.map((a, i) => {
+                    const free = i < 6;
+                    const isUnlocked = free || unlockedAvatars.includes(a);
+                    const isActive = activeAvatar === a;
+                    return (
+                      <button
+                        key={i}
+                        onClick={async () => {
+                          try {
+                            const { data } = await supabase.auth.getSession();
+                            const user = data?.session?.user;
+                            if (!user) {
+                              setPurchaseMeta({
+                                title: 'Perlu Masuk',
+                                description: 'Silakan masuk untuk memilih atau membuka avatar.',
+                                onConfirm: () => setPurchaseOpen(false),
+                              });
+                              setPurchaseOpen(true);
+                              return;
+                            }
+                            if (isUnlocked) {
+                              await saveAvatarSelection(a);
+                              return;
+                            }
+                            const cost = 1;
+                            if ((coins ?? 0) < cost) {
+                              setPurchaseMeta({
+                                title: 'Koin Tidak Cukup',
+                                description: 'Koin tidak cukup untuk membuka avatar ini. Menangkan permainan online untuk mendapatkan koin.',
+                                onConfirm: () => setPurchaseOpen(false),
+                              });
+                              setPurchaseOpen(true);
+                              return;
+                            }
+                            setPurchaseMeta({
+                              title: `Buka avatar ${a}`,
+                              description: `Konfirmasi pembelian avatar ${a} seharga ${cost} koin?`,
+                              cost,
+                              onConfirm: async () => {
+                                try {
+                                  const newCoins = (coins ?? 0) - cost;
+                                  const newUnlocked = Array.from(new Set([...(unlockedAvatars || []), a]));
+                                  await supabase.from('user_stats').upsert({ user_id: user.id, avatar: a, coins: newCoins, unlocked_avatars: newUnlocked, email: user.email || null }).select();
+                                  setCoins(newCoins);
+                                  setUnlockedAvatars(newUnlocked);
+                                  setActiveAvatar(a);
+                                } catch (err) { console.error('Failed to purchase avatar', err); }
+                                setPurchaseOpen(false);
+                              },
+                            });
+                            setPurchaseOpen(true);
+                          } catch (err) { console.error('Failed to save/unlock avatar', err); }
+                        }}
+                        className="relative aspect-square rounded-xl transition-all flex items-center justify-center text-3xl"
+                        style={{
+                          background: isActive ? ACCENT_TINT : BOARD_DARK,
+                          border: `2.5px solid ${isActive ? ACCENT_DEEP : WOOD}`,
+                          boxShadow: `2px 2px 0 ${isActive ? ACCENT_DEEP : WOOD_DARK}`,
+                        }}
+                        title={a}
+                      >
+                        {a}
+                        {isActive && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/10 rounded-xl">
+                            <Check className="w-3.5 h-3.5 text-white drop-shadow" />
+                          </div>
+                        )}
+                        {!isUnlocked && (
+                          <div className="absolute right-1 bottom-1 text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.55)', color: '#fff' }}>
+                            🔒 1
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-4">
+                  <p style={SECTION_TITLE_STYLE}><Sparkles className="w-3.5 h-3.5" /> Avatar Limited</p>
+                  <div className="grid grid-cols-4 gap-2.5 text-2xl">
+                    {LIMITED_AVATAR_EMOJIS.map((a) => {
+                      const isUnlocked = unlockedAvatars.includes(a);
+                      const isActive = activeAvatar === a;
+                      return (
+                        <button
+                          key={a}
+                          onClick={async () => {
+                            if (isUnlocked) {
+                              await saveAvatarSelection(a);
+                              return;
+                            }
+                            setActiveTab('account');
+                            setRedeemMessage('Avatar limited ini bisa dibuka lewat kode redeem di tab Akun.');
+                          }}
+                          className="relative aspect-square rounded-xl transition-all flex items-center justify-center text-3xl"
+                          style={{
+                            background: isActive ? ACCENT_TINT : BOARD_DARK,
+                            border: `2.5px solid ${isActive ? ACCENT_DEEP : WOOD}`,
+                            boxShadow: `2px 2px 0 ${isActive ? ACCENT_DEEP : WOOD_DARK}`,
+                          }}
+                          title={a}
+                        >
+                          {a}
+                          {isActive && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/10 rounded-xl">
+                              <Check className="w-3.5 h-3.5 text-white drop-shadow" />
+                            </div>
+                          )}
+                          {!isUnlocked && (
+                            <div className="absolute right-1 bottom-1 text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'rgba(0,0,0,0.55)', color: '#fff' }}>
+                              🔒
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[10px] mt-2 font-semibold" style={{ color: WOOD_LIGHT }}>
+                    Buka avatar ini lewat kode redeem di tab Akun.
+                  </p>
+                </div>
+              </div>
+            </>
+          )}
 
           {/* ══ SOUND TAB ════════════════════════════════════ */}
           {activeTab === 'sound' && <>
@@ -745,6 +959,44 @@ export const Settings = () => {
           {activeTab === 'account' && <>
 
             <div className="p-5 rounded-2xl" style={{ background: BOARD, border: `3px solid ${WOOD}`, boxShadow: `3px 3px 0 ${WOOD_DARK}` }}>
+              <p style={SECTION_TITLE_STYLE}><Gift className="w-3.5 h-3.5" /> Kode Redeem</p>
+              <p className="text-sm font-semibold" style={{ color: WOOD_LIGHT }}>
+                Tukar kode khusus untuk menerima hadiah langsung ke akunmu.
+              </p>
+              <div className="mt-3 space-y-2">
+                <input
+                  type="text"
+                  value={redeemCode}
+                  onChange={(e) => setRedeemCode(e.target.value)}
+                  placeholder="Masukkan kode"
+                  className="w-full px-3 py-2.5 rounded-xl font-semibold text-sm"
+                  style={{ background: BOARD_DARK, border: `2px solid ${WOOD}`, color: INK }}
+                  onKeyDown={(e) => e.key === 'Enter' && handleRedeemCode()}
+                />
+                <button
+                  onClick={handleRedeemCode}
+                  disabled={redeemBusy}
+                  className="w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all"
+                  style={{
+                    background: redeemBusy ? BOARD_DARK : ACCENT,
+                    color: WOOD_DARK,
+                    border: `2px solid ${WOOD_DARK}`,
+                    boxShadow: `2px 2px 0 ${WOOD_DARK}`,
+                    opacity: redeemBusy ? 0.8 : 1,
+                  }}
+                >
+                  {redeemBusy ? 'Memproses...' : 'Tukar Kode'}
+                </button>
+              </div>
+              {redeemMessage && (
+                <p className="mt-3 text-sm font-semibold" style={{ color: redeemMessage.includes('berhasil') || redeemMessage.includes('ditukar') ? ACCENT_DEEP : WOOD_LIGHT }}>
+                  {redeemMessage}
+                </p>
+              )}
+        
+            </div>
+
+            <div className="p-5 rounded-2xl" style={{ background: BOARD, border: `3px solid ${WOOD}`, boxShadow: `3px 3px 0 ${WOOD_DARK}` }}>
               <p style={SECTION_TITLE_STYLE}><Mail className="w-3.5 h-3.5" /> Akun Google</p>
               {!isAuthenticated ? (
                 <div className="space-y-3">
@@ -780,35 +1032,26 @@ export const Settings = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={async () => {
-                        if (!accountName) return;
-                        setUsername(accountName); setInputName(accountName);
-                        try {
-                          const { data } = await supabase.auth.getSession();
-                          const user = data?.session?.user;
-                          if (user) {
-                            await supabase.from('user_stats').upsert({
-                              user_id: user.id, email: user.email || null,
-                              username: accountName, name: accountName,
-                            }).select();
-                          }
-                        } catch (err) { console.error('Failed to upsert user_stats name', err); }
-                      }}
-                      className="w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
-                      style={{ background: WOOD, color: BOARD, border: `2px solid ${WOOD_DARK}`, boxShadow: `2px 2px 0 ${WOOD_DARK}` }}
-                    >
-                      Sinkronkan Nama
-                    </button>
-                    <button
-                      onClick={async () => { try { await supabase.auth.signOut(); router.push('/'); } catch {} }}
-                      className="w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
-                      style={{ background: 'rgba(239,68,68,0.1)', color: '#dc2626', border: '2px solid rgba(239,68,68,0.4)' }}
-                    >
-                      Keluar dari Akun
-                    </button>
-                  </div>
+                  <button
+                    onClick={async () => {
+                      if (!accountName) return;
+                      setUsername(accountName); setInputName(accountName);
+                      try {
+                        const { data } = await supabase.auth.getSession();
+                        const user = data?.session?.user;
+                        if (user) {
+                          await supabase.from('user_stats').upsert({
+                            user_id: user.id, email: user.email || null,
+                            username: accountName, name: accountName,
+                          }).select();
+                        }
+                      } catch (err) { console.error('Failed to upsert user_stats name', err); }
+                    }}
+                    className="w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
+                    style={{ background: WOOD, color: BOARD, border: `2px solid ${WOOD_DARK}`, boxShadow: `2px 2px 0 ${WOOD_DARK}` }}
+                  >
+                    Sinkronkan Nama
+                  </button>
                   <p className="text-xs font-semibold" style={{ color: WOOD_LIGHT }}>
                     Untuk keamanan, tautan akun tidak dapat diputus melalui aplikasi. Kelola koneksi dari Google Account Anda.
                   </p>
@@ -833,7 +1076,7 @@ export const Settings = () => {
               <button
                 onClick={async () => { try { await supabase.auth.signOut(); router.push('/'); } catch {} }}
                 disabled={!isAuthenticated}
-                className="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
+                className="w-full py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all"
                 style={
                   isAuthenticated
                     ? { background: 'rgba(239,68,68,0.1)', color: '#dc2626', border: '2px solid rgba(239,68,68,0.4)' }
@@ -845,20 +1088,86 @@ export const Settings = () => {
             </div>
 
             <div className="flex items-center justify-between px-2 pt-3 text-[11px] font-semibold" style={{ color: WOOD_LIGHT }}>
-              <span>Game Version</span>
-              <span className="font-black" style={{ color: ACCENT_DEEP }}>{packageJson.version}</span>
+              <button
+                onClick={() => setShowCreditsOverlay(true)}
+                className="font-black uppercase tracking-[0.18em] underline-offset-2 transition-all hover:underline"
+                style={{ color: ACCENT_DEEP }}
+              >
+                Kredit
+              </button>
+              <span className="font-black" style={{ color: ACCENT_DEEP }}>v{packageJson.version}</span>
             </div>
           </>}
 
         </motion.div>
       </div>
 
+      <AnimatePresence>
+        {showCreditsOverlay && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] overflow-hidden bg-black/90 backdrop-blur-sm"
+            onClick={() => setShowCreditsOverlay(false)}
+          >
+            <button
+              onClick={() => setShowCreditsOverlay(false)}
+              className="absolute right-4 top-4 z-20 flex h-10 w-10 items-center justify-center rounded-full border-2 text-white"
+              style={{ background: 'rgba(255,255,255,0.12)', borderColor: 'rgba(255,255,255,0.25)' }}
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <motion.div
+              initial={{ y: '8%' }}
+              animate={{ y: '-70%' }}
+              transition={{ duration: 20, ease: 'linear', repeat: Infinity, repeatType: 'loop' }}
+              className="absolute inset-x-0 top-0 flex flex-col items-center px-4 pb-24 pt-16 text-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-8 flex flex-col items-center">
+                <div className="mb-4 flex items-center justify-center gap-4">
+                  <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2" style={{ background: BOARD_DARK, borderColor: WOOD }}>
+                    <Image src="/image/Snake.png" alt="Logo game" width={64} height={64} className="object-contain" />
+                  </div>
+                  <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2" style={{ background: BOARD_DARK, borderColor: WOOD }}>
+                    <Image src="/image/Univ.png" alt="Logo universitas" width={64} height={64} className="object-contain" />
+                  </div>
+                </div>
+                <p className="text-[10px] font-black uppercase tracking-[0.35em]" style={{ color: ACCENT }}>Credits</p>
+                <h3 className="mt-2 text-2xl font-black text-white">SNAKE PAWNS</h3>
+                <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#f4e8c8]">
+                  Sebuah permainan edukatif yang menggabungkan nostalgia ular tangga dengan tantangan soal, mode offline, online, dan versus komputer.
+                </p>
+              </div>
+
+              {CREDIT_SECTIONS.map((section, sectionIndex) => (
+                <div key={`${section.title}-${sectionIndex}`} className="mb-4 w-full max-w-2xl text-center">
+                  <h4 className="mb-2 text-sm font-black uppercase tracking-[0.25em]" style={{ color: ACCENT }}>{section.title}</h4>
+                  {section.lines.map((line, lineIndex) => (
+                    <p key={`${section.title}-${lineIndex}-${line}`} className="text-sm leading-relaxed text-[#f7ebd0]">
+                      {line}
+                    </p>
+                  ))}
+                </div>
+              ))}
+
+              <div className="mt-4 w-full max-w-2xl text-center">
+                <p className="text-sm font-black uppercase tracking-[0.25em]" style={{ color: ACCENT }}>Terima kasih</p>
+                <p className="mt-2 text-sm leading-relaxed text-[#f7ebd0]">Semoga setiap langkah di papan membawa pengalaman belajar yang menyenangkan.</p>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Name Modal */}
       <AnimatePresence>
         {showNameModal && (
           <motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/60  flex items-center justify-center z-50 p-4"
             onClick={() => setShowNameModal(false)}
           >
             <motion.div
@@ -915,6 +1224,24 @@ export const Settings = () => {
           onConfirm={() => { purchaseMeta.onConfirm && purchaseMeta.onConfirm(); }}
           confirmLabel={purchaseMeta.cost ? 'Beli' : 'OK'}
         />
+      )}
+
+      {rewardModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 " onClick={() => setRewardModal(null)} />
+          <div className="relative w-full max-w-sm rounded-2xl p-6" style={{ background: BOARD, border: `3px solid ${WOOD}`, boxShadow: `5px 5px 0 ${WOOD_DARK}` }}>
+            <div className="text-4xl mb-3">{rewardModal.icon}</div>
+            <h3 className="text-lg font-black" style={{ color: ACCENT_DEEP }}>{rewardModal.title}</h3>
+            <p className="mt-2 text-sm font-semibold" style={{ color: WOOD_LIGHT }}>{rewardModal.description}</p>
+            <button
+              onClick={() => setRewardModal(null)}
+              className="mt-5 w-full py-2.5 rounded-xl font-black text-sm uppercase tracking-wider"
+              style={{ background: ACCENT, color: WOOD_DARK, border: `2px solid ${WOOD_DARK}`, boxShadow: `2px 2px 0 ${WOOD_DARK}` }}
+            >
+              Oke
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
