@@ -92,7 +92,7 @@ function buildPrompt(theme: QuestionTheme, grade: QuestionGrade = 'smp'): string
 
   return `JSON_ONLY
 {"question":"...","options":["","","",""],"correctAnswer":0}
-Buat 1 soal pilihan ganda berbahasa Indonesia/inggris sesuai tema tentang ${themeDesc}, ${gradeContext}, dengan tingkat kesulitan ${difficultyDesc}.
+Buat 1 soal pilihan ganda berbahasa Indonesia sesuai tema tentang ${themeDesc}, ${gradeContext}, dengan tingkat kesulitan ${difficultyDesc}.
 Batasi panjang teks pertanyaan menjadi 10-25 kata saja; buat kalimat singkat, langsung ke inti, dan mudah dipahami.
 Gunakan gaya bahasa: ${gradeStyle}.
 Bebaskan sepenuhnya jenis soal (hitungan, cerita, analisis, pemahaman, logika, dll), konteksnya (nama, benda, situasi, angka), dan sudut pandangnya — asal tetap relevan dengan tema dan jenjang di atas. Jangan terpaku pada satu pola atau contoh tertentu, buat soal terasa baru dan tidak monoton setiap kali dibuat.
