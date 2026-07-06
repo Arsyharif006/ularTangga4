@@ -277,7 +277,7 @@ export default function CreateRoomPage() {
               <motion.span whileTap={{ rotate: 180 }} transition={{ duration: 0.3 }}>
                 <RefreshCw className="w-4 h-4" />
               </motion.span>
-              Generate Baru
+              Buat Baru
             </motion.button>
 
             <AnimatePresence>

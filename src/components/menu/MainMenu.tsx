@@ -90,14 +90,14 @@ export const MainMenu = () => {
     {
       key: 'offline',
       title: 'Bermain Offline',
-      subtitle: 'Multiplayer Lokal',
+      subtitle: 'Bersama Teman',
       icon: Users,
     },
     
     {
       key: 'online',
       title: 'Bermain Online',
-      subtitle: 'Beta',
+      subtitle: 'Bersama Pemain Lain',
       icon: Globe,
       badge: 'BETA',
     },
@@ -110,7 +110,7 @@ export const MainMenu = () => {
     {
       key: 'leaderboard',
       title: 'Papan Peringkat',
-      subtitle: 'Leaderboard',
+      subtitle: 'Peringkat Pemain',
       icon: Trophy,
     },
   ];
