@@ -49,8 +49,6 @@ const THEMES: QuestionTheme[] = [
   'sma_smk',
   'general',
   'programming',
-  'sistem_digital',
-  'logika_mtk',
   'matematika',
   'english',
   'history',

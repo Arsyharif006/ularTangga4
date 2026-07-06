@@ -17,8 +17,8 @@ interface GeneratedQuestionData {
 const THEME_PROMPTS: Record<QuestionTheme, string> = {
   general: 'pengetahuan umum',
   programming: 'pemrograman dan ilmu komputer',
-  sistem_digital: 'sistem digital, logika digital, dan bilangan biner',
-  logika_mtk: 'logika matematika dan proposisi',
+  sistem_digital: 'sistem digital dan logika gerbang',
+  logika_mtk: 'logika matematika',
   matematika: 'matematika dan perhitungan',
   english: 'bahasa inggris dan tata bahasa',
   history: 'sejarah',
@@ -52,13 +52,26 @@ const GRADE_DIFFICULTY: Record<QuestionGrade, 'easy' | 'medium' | 'hard'> = {
 // Konteks singkat per jenjang. Ini yang membatasi TINGKAT soal,
 // bukan topik/objek/format soal — itu dibebaskan ke AI.
 const GRADE_CONTEXT: Record<QuestionGrade, string> = {
-  sd: 'untuk siswa SD (bahasa sederhana, konsep konkret, angka kecil, satu langkah pengerjaan)',
+  sd: 'untuk siswa SD (konsep konkret, angka kecil, satu langkah pengerjaan)',
   smp: 'untuk siswa SMP (materi menengah, boleh sedikit analisis)',
   sma_smk: 'untuk siswa SMA/SMK (materi lanjut, boleh analisis dan konteks praktis)',
 };
 
+// Gaya bahasa soal dibuat berbeda per jenjang supaya terasa "pas" untuk usianya.
+const GRADE_STYLE: Record<QuestionGrade, string> = {
+  sd: 'ceria, akrab, dan sangat sederhana, seolah bicara langsung ke anak SD (boleh pakai sapaan seperti "kamu", kalimat pendek, tanpa istilah rumit)',
+  smp: 'bahasa baku sekolah namun tetap santai dan mudah dipahami, seperti soal ulangan SMP pada umumnya',
+  sma_smk: 'bahasa formal dan sedikit teknis, layaknya soal ujian SMA/SMK atau konteks dunia kerja/praktik',
+};
+
 const GROQ_MODELS = [
+  'qwen/qwen3-32b',
+  'qwen/qwen3.6-27b',
   'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b',
+  'llama-3.1-8b-instant',
+  'llama-3.3-70b-versatile',
+  ''
 ] as const;
 
 function getProviderApiKey(): string | undefined {
@@ -75,10 +88,12 @@ function buildPrompt(theme: QuestionTheme, grade: QuestionGrade = 'smp'): string
   const gradeDifficulty = GRADE_DIFFICULTY[grade] || 'medium';
   const difficultyDesc = DIFFICULTY_DESC[gradeDifficulty] || DIFFICULTY_DESC.medium;
   const gradeContext = GRADE_CONTEXT[grade] || GRADE_CONTEXT.smp;
+  const gradeStyle = GRADE_STYLE[grade] || GRADE_STYLE.smp;
 
   return `JSON_ONLY
 {"question":"...","options":["","","",""],"correctAnswer":0}
 Buat 1 soal pilihan ganda berbahasa Indonesia tentang ${themeDesc}, ${gradeContext}, dengan tingkat kesulitan ${difficultyDesc}.
+Gunakan gaya bahasa: ${gradeStyle}.
 Bebaskan sepenuhnya jenis soal (hitungan, cerita, analisis, pemahaman, logika, dll), konteksnya (nama, benda, situasi, angka), dan sudut pandangnya — asal tetap relevan dengan tema dan jenjang di atas. Jangan terpaku pada satu pola atau contoh tertentu, buat soal terasa baru dan tidak monoton setiap kali dibuat.
 Output HANYA 1 JSON valid berisi field question, options (4 string pilihan jawaban), dan correctAnswer (index 0-3). Jangan tambahkan teks lain di luar JSON.`;
 }
@@ -123,7 +138,7 @@ async function generateWithGroq(theme: QuestionTheme, grade: QuestionGrade): Pro
           temperature: 0.95,
           max_completion_tokens: maxTokens,
           top_p: 0.95,
-          ...(model.includes('gpt-oss') ? { reasoning_effort: 'medium' } : {}),
+          ...(model.includes('qwen') ? { reasoning_effort: 'default' } : model.includes('gpt-oss') ? { reasoning_effort: 'medium' } : {}),
           stream: false,
           stop: null,
         }),
@@ -140,7 +155,8 @@ async function generateWithGroq(theme: QuestionTheme, grade: QuestionGrade): Pro
   let lastError: Error | null = null;
 
   for (const model of GROQ_MODELS) {
-    const attempt = await doRequest(model, model.includes('gpt-oss') ? 512 : 384);
+    const maxTokens = model.includes('qwen') ? 4096 : model.includes('gpt-oss') ? 512 : 384;
+    const attempt = await doRequest(model, maxTokens);
     if (attempt.res.ok) {
       const data = JSON.parse(attempt.text || '{}');
       const content = data?.choices?.[0]?.message?.content ?? null;

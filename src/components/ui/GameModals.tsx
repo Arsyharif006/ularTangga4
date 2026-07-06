@@ -29,6 +29,9 @@ const TERRACOTTA_BG    = '#F3DCD3';   // incorrect answer fill
 const TERRACOTTA_BORDER = '#C77B5E';
 const TERRACOTTA_TEXT  = '#7A3420';
 
+// Threshold (characters) above which the question card offers an expand/collapse toggle.
+const QUESTION_EXPAND_THRESHOLD = 110;
+
 type GameModalsProps = {
   onAnswerQuestion?: (isCorrect: boolean) => void | Promise<void>;
 };
@@ -61,6 +64,9 @@ export const GameModals = ({ onAnswerQuestion }: GameModalsProps) => {
   const [showFeedback, setShowFeedback] = useState(false);
   const [isAnswerCorrect, setIsAnswerCorrect] = useState(false);
 
+  // Expand/collapse state for long question text
+  const [isQuestionExpanded, setIsQuestionExpanded] = useState(false);
+
   const currentPlayer = players[currentPlayerIndex];
 
   // Timer untuk jawab soal (15 detik)
@@ -74,6 +80,7 @@ export const GameModals = ({ onAnswerQuestion }: GameModalsProps) => {
       setTimeRemaining(15);
       setSelectedAnswerIdx(null);
       setShowFeedback(false);
+      setIsQuestionExpanded(false);
       lastQuestionIdRef.current = currentQuestion.id;
     }
     setIsTimeUp(false);
@@ -133,6 +140,8 @@ export const GameModals = ({ onAnswerQuestion }: GameModalsProps) => {
     options = options.map((opt, idx) => idx === hintRemovedIndex ? '' : opt);
   }
 
+  const isLongQuestion = (currentQuestion?.question?.length ?? 0) > QUESTION_EXPAND_THRESHOLD;
+
   return (
     <>
       {/* QUESTION MODAL (hidden for bot players) */}
@@ -161,7 +170,8 @@ export const GameModals = ({ onAnswerQuestion }: GameModalsProps) => {
               )}
             </div>
 
-            {/* Question card — kayu gelap dengan aksen tembaga, seperti plakat ukiran */}
+            {/* Question card — kayu gelap dengan aksen tembaga, seperti plakat ukiran
+                (warna & style tetap seperti semula; hanya ditambah line-clamp + expand/collapse) */}
             <div
               className="relative p-5 rounded-xl text-lg font-medium leading-relaxed"
               style={{
@@ -177,7 +187,26 @@ export const GameModals = ({ onAnswerQuestion }: GameModalsProps) => {
               >
                 Soal
               </span>
-              {currentQuestion.question}
+              <p className={isLongQuestion && !isQuestionExpanded ? 'line-clamp-3' : ''}>
+                {currentQuestion.question}
+              </p>
+
+              {isLongQuestion && (
+                <button
+                  type="button"
+                  onClick={() => setIsQuestionExpanded(prev => !prev)}
+                  className="mt-2 inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide"
+                  style={{ color: ACCENT }}
+                >
+                  {isQuestionExpanded ? 'Sembunyikan' : 'Lihat selengkapnya'}
+                  <span
+                    className="inline-block transition-transform duration-300"
+                    style={{ transform: isQuestionExpanded ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                  >
+                    ▾
+                  </span>
+                </button>
+              )}
             </div>
             
             {/* Answer options — kartu parchment hangat, bukan putih polos */}
