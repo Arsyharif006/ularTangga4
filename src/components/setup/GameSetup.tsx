@@ -448,12 +448,11 @@ export const GameSetup = ({ mode = 'offline' }: GameSetupProps) => {
               {/* ── Step 1: Jumlah Pemain ── */}
               {currentStep === 'players-count' && (
                 <div className="max-w-xl mx-auto w-full">
-                  <p
-                    className="text-center font-semibold mb-6 uppercase tracking-wider text-sm"
-                    style={{ color: WOOD_LIGHT }}
-                  >
-                    Pilih Jumlah Pemain
-                  </p>
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-lg font-bold uppercase tracking-wide" style={{ color: BOARD }}>
+                      Pilih Jumlah Pemain
+                    </h2>
+                  </div>
                   <div className="grid grid-cols-3 gap-3">
                     {playerCountOptions.map(num => (
                       <button
@@ -591,12 +590,11 @@ export const GameSetup = ({ mode = 'offline' }: GameSetupProps) => {
               {/* ── Step: Pilih Tingkat (grade) ── */}
               {currentStep === 'question-grade' && (
                 <div className="max-w-xl mx-auto w-full">
-                  <p
-                    className="text-center font-semibold mb-6 uppercase tracking-wider text-sm"
-                    style={{ color: WOOD_LIGHT }}
-                  >
-                    Pilih Tingkat Sekolah
-                  </p>
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-lg font-bold uppercase tracking-wide" style={{ color: BOARD }}>
+                      Pilih Tingkat Sekolah
+                    </h2>
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
                     {['sd','smp','sma_smk'].map(g => {
                       const label = QUESTION_THEME_OPTIONS.find(q => q.value === g)?.label || g;
@@ -616,9 +614,11 @@ export const GameSetup = ({ mode = 'offline' }: GameSetupProps) => {
               {/* ── Step: Pilih Mata Pelajaran sesuai grade ── */}
               {currentStep === 'question-subject' && (
                 <div className="max-w-xl mx-auto w-full">
-                  <p className="text-center font-semibold mb-6 uppercase tracking-wider text-sm" style={{ color: WOOD_LIGHT }}>
-                    Pilih Mata Pelajaran ({selectedGrade})
-                  </p>
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-lg font-bold uppercase tracking-wide" style={{ color: BOARD }}>
+                      Pilih Mata Pelajaran
+                    </h2>
+                  </div>
                   <div className="grid grid-cols-2 gap-3">
                     {(selectedGrade ? SUBJECTS_BY_GRADE[selectedGrade] : []).map(opt => {
                       const active = questionTheme === opt.value;
@@ -637,12 +637,11 @@ export const GameSetup = ({ mode = 'offline' }: GameSetupProps) => {
        {/* ── Step 4: Tema Papan (final step) ── */}
               {currentStep === 'board-theme' && (
                 <div className="max-w-3xl mx-auto w-full flex-1 flex flex-col">
-                  <p
-                    className="text-center font-semibold mb-6 uppercase tracking-wider text-sm"
-                    style={{ color: WOOD_LIGHT }}
-                  >
-                    Pilih Peta Papan
-                  </p>
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-lg font-bold uppercase tracking-wide" style={{ color: BOARD }}>
+                      Pilih Peta Papan
+                    </h2>
+                  </div>
                   <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-8">
 
                     {BOARD_THEME_LIST.map((boardThemeOption, idx) => {
