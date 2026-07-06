@@ -156,7 +156,8 @@ export async function generateQuestionFromAI(
     // Fallback: return one static question from the theme to avoid blocking gameplay
     try {
       const themeQs = (ALL_QUESTIONS as Record<QuestionTheme, Question[]>)[theme] || (ALL_QUESTIONS as Record<QuestionTheme, Question[]>)['general'];
-      const fallback = themeQs && themeQs.length > 0 ? themeQs[Math.floor(Math.random() * themeQs.length)] : {
+      const fallbackSource = themeQs && themeQs.length > 0 ? [...themeQs].sort(() => Math.random() - 0.5) : [];
+      const fallback = fallbackSource.length > 0 ? fallbackSource[0] : {
         id: `fallback_${Date.now()}`,
         theme,
         question: 'Soal sementara tidak tersedia',

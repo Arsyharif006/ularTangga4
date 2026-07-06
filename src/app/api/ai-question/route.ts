@@ -43,10 +43,16 @@ const DIFFICULTY_DESC: Record<string, string> = {
   hard: 'sulit (tingkat lanjut)',
 };
 
+const GRADE_DIFFICULTY: Record<QuestionGrade, 'easy' | 'medium' | 'hard'> = {
+  sd: 'easy',
+  smp: 'medium',
+  sma_smk: 'hard',
+};
+
 const GRADE_CONTEXT: Record<QuestionGrade, string> = {
-  sd: 'untuk siswa SD, gunakan konsep dasar yang sederhana, bahasa mudah, dan tidak memakai materi di atas tingkat SD',
-  smp: 'untuk siswa SMP, gunakan materi tingkat menengah yang sesuai kurikulum SMP dan hindari topik SMA/SMK yang terlalu sulit',
-  sma_smk: 'untuk siswa SMA/SMK, gunakan materi tingkat lanjut yang sesuai kurikulum SMA/SMK dan hindari materi dasar SD/SMP',
+  sd: 'untuk SD: bahasa sangat sederhana, konsep konkret, angka kecil, satu langkah pengerjaan, dan tidak memakai materi di atas SD',
+  smp: 'untuk SMP: materi menengah sesuai kurikulum SMP, bisa sedikit analisis, dan hindari topik SMA/SMK yang terlalu sulit',
+  sma_smk: 'untuk SMA/SMK: materi lanjut sesuai kurikulum SMA/SMK, analisis singkat, dan hindari materi dasar SD/SMP',
 };
 
 const GROQ_MODELS = [
@@ -56,16 +62,205 @@ const GROQ_MODELS = [
   'llama-3.1-8b-instant',
 ] as const;
 
+const VARIETY_HINTS: Record<QuestionTheme, string[]> = {
+  general: ['situasi sehari-hari', 'permainan', 'belanja', 'keluarga', 'sekolah', 'alam sekitar'],
+  programming: ['algoritma sederhana', 'logika pemrograman', 'struktur data', 'debugging', 'perintah komputer'],
+  sistem_digital: ['gerbang logika', 'bilangan biner', 'sirkuit sederhana', 'kode biner', 'logika digital'],
+  logika_mtk: ['pola bilangan', 'premis logika', 'pernyataan benar/salah', 'penalaran sederhana'],
+  matematika: ['penjumlahan', 'pengurangan', 'perkalian', 'pembagian', 'waktu', 'uang', 'ukuran', 'geometri'],
+  english: ['kosakata', 'grammar', 'dialog sederhana', 'tenses', 'reading'],
+  history: ['peristiwa sejarah', 'tokoh sejarah', 'asal usul', 'peradaban', 'kejadian penting'],
+  bahasa_indonesia: ['bacaan singkat', 'kata baku', 'makna kata', 'kalimat efektif', 'tanda baca'],
+  ipa: ['makhluk hidup', 'energi', 'sifat benda', 'ekosistem', 'cuaca'],
+  ips: ['kehidupan sosial', 'peta', 'kebutuhan hidup', 'budaya', 'ekonomi dasar'],
+  ppkn: ['norma', 'hak dan kewajiban', 'nilai Pancasila', 'tata tertib', 'kebersamaan'],
+  fisika: ['gaya', 'energi', 'gerak', 'cahaya', 'suhu'],
+  kimia: ['zat', 'reaksi sederhana', 'perubahan wujud', 'campuran', 'unsur'],
+  broadcasting: ['media', 'siaran', 'pesan', 'audiens', 'program'],
+  informatika: ['komputer', 'jaringan', 'data', 'aplikasi', 'internet'],
+  tkj: ['jaringan komputer', 'topologi', 'router', 'kabel', 'internet'],
+  desain_grafis: ['warna', 'layout', 'tipografi', 'logo', 'komposisi'],
+  sd: ['kehidupan sehari-hari', 'berhitung', 'uang', 'waktu', 'ukuran'],
+  smp: ['konsep sekolah', 'ilmu pengetahuan', 'masalah sehari-hari', 'analisis sederhana'],
+  sma_smk: ['kasus nyata', 'analisis', 'teknologi', 'konteks praktik'],
+};
+
+const QUESTION_FORMATS = ['hitungan', 'analisis', 'pemahaman', 'logika'] as const;
+
+const NAME_BANK = ['Alya', 'Raka', 'Nina', 'Damar', 'Selvi', 'Arman', 'Citra', 'Farel', 'Mira', 'Irfan'];
+
+const OBJECT_BANKS: Record<QuestionTheme, string[]> = {
+  general: ['tas', 'jam', 'buku', 'kunci', 'topi', 'sepatu', 'piring', 'lampu'],
+  programming: ['robot', 'kode', 'komputer', 'sensor', 'panel'],
+  sistem_digital: ['saklar', 'lampu', 'sensor', 'sinyal', 'chip'],
+  logika_mtk: ['kartu', 'angka', 'kotak', 'peta', 'token'],
+  matematika: ['apel', 'permen', 'kelereng', 'stiker', 'kertas'],
+  english: ['buku', 'tas', 'peta', 'kamera', 'kado'],
+  history: ['prasasti', 'peta', 'patung', 'keramik', 'dokumen'],
+  bahasa_indonesia: ['teks', 'novel', 'poster', 'surat', 'majalah'],
+  ipa: ['tanaman', 'biji', 'air', 'matahari', 'serangga'],
+  ips: ['pasar', 'desa', 'pabrik', 'jalan', 'bank'],
+  ppkn: ['bendera', 'papan pengumuman', 'kelas', 'tempat sampah', 'ruang baca'],
+  fisika: ['bola', 'mobil', 'sepeda', 'penggaris', 'jam'],
+  kimia: ['larutan', 'cairan', 'padatan', 'gas', 'campuran'],
+  broadcasting: ['mikrofon', 'kamera', 'studio', 'podcast', 'layar'],
+  informatika: ['server', 'data', 'aplikasi', 'jaringan', 'file'],
+  tkj: ['router', 'kabel', 'switch', 'server', 'modem'],
+  desain_grafis: ['logo', 'poster', 'warna', 'layout', 'ikon'],
+  sd: ['bola', 'pensil', 'tas', 'kue', 'buku'],
+  smp: ['laptop', 'alat tulis', 'botol', 'jurnal', 'kamera'],
+  sma_smk: ['proyek', 'aplikasi', 'alat ukur', 'prototype', 'data'],
+};
+
+const THEME_TOPIC_BANKS: Record<QuestionTheme, string[]> = {
+  general: ['kejadian sehari-hari', 'pengetahuan umum', 'kebiasaan', 'sosial'],
+  programming: ['alur program', 'struktur data', 'logika kode', 'debugging'],
+  sistem_digital: ['gerbang logika', 'bilangan biner', 'sinyal digital', 'sirkuit sederhana'],
+  logika_mtk: ['pola bilangan', 'premis logika', 'penalaran', 'pernyataan benar salah'],
+  matematika: ['operasi hitung', 'pengukuran', 'waktu', 'uang', 'pola bilangan'],
+  english: ['kosakata', 'grammar sederhana', 'dialog singkat', 'tenses sederhana'],
+  history: ['tokoh sejarah', 'peristiwa penting', 'asal usul', 'peradaban'],
+  bahasa_indonesia: ['bacaan singkat', 'kata baku', 'kalimat efektif', 'makna kata'],
+  ipa: ['makhluk hidup', 'energi', 'sifat benda', 'ekosistem'],
+  ips: ['kehidupan sosial', 'kebutuhan sehari-hari', 'ekonomi dasar', 'peta'],
+  ppkn: ['norma', 'hak dan kewajiban', 'nilai Pancasila', 'tata tertib'],
+  fisika: ['gaya', 'energi', 'gerak', 'cahaya'],
+  kimia: ['zat', 'reaksi sederhana', 'perubahan wujud', 'campuran'],
+  broadcasting: ['media', 'siaran', 'pesan audien', 'program'],
+  informatika: ['data', 'jaringan', 'aplikasi', 'komputer dasar'],
+  tkj: ['router', 'jaringan', 'topologi', 'kabel'],
+  desain_grafis: ['warna', 'layout', 'tipografi', 'logo'],
+  sd: ['kehidupan sehari-hari', 'berhitung', 'uang', 'waktu'],
+  smp: ['konsep sekolah', 'analisis sederhana', 'masalah sehari-hari', 'ilmu pengetahuan'],
+  sma_smk: ['kasus nyata', 'analisis', 'teknologi', 'praktik kerja'],
+};
+
+const THEME_CURRICULUM_RULES: Record<QuestionTheme, Record<QuestionGrade, string>> = {
+  general: {
+    sd: 'konsep konkret dan sangat dasar',
+    smp: 'konsep menengah dan sederhana',
+    sma_smk: 'konsep aplikatif dan analitis',
+  },
+  programming: {
+    sd: 'logika sederhana dan urutan langkah',
+    smp: 'alur program dan pemahaman dasar',
+    sma_smk: 'algoritma, struktur, dan pemecahan masalah',
+  },
+  sistem_digital: {
+    sd: 'pengenalan sederhana benda dan sinyal',
+    smp: 'logika digital dasar',
+    sma_smk: 'sistem digital dan aplikasi teknis',
+  },
+  logika_mtk: {
+    sd: 'pola sederhana dan penalaran dasar',
+    smp: 'pola dan logika berurutan',
+    sma_smk: 'analisis logika dan argumen',
+  },
+  matematika: {
+    sd: 'operasi hitung dasar dan angka kecil',
+    smp: 'persamaan, perbandingan, dan pola',
+    sma_smk: 'aplikasi, fungsi, dan pemecahan masalah',
+  },
+  english: {
+    sd: 'kosakata dan kalimat sederhana',
+    smp: 'grammar dasar dan pemahaman singkat',
+    sma_smk: 'komunikasi dan konteks nyata',
+  },
+  history: {
+    sd: 'tokoh dan peristiwa paling dasar',
+    smp: 'urutan peristiwa dan makna sejarah',
+    sma_smk: 'analisis peristiwa dan dampaknya',
+  },
+  bahasa_indonesia: {
+    sd: 'kata, kalimat, dan bacaan sederhana',
+    smp: 'pemahaman teks dan struktur kalimat',
+    sma_smk: 'analisis teks dan makna tersirat',
+  },
+  ipa: {
+    sd: 'gejala alam yang dekat dengan kehidupan',
+    smp: 'konsep ilmiah sederhana',
+    sma_smk: 'hubungan sebab-akibat dan aplikasi',
+  },
+  ips: {
+    sd: 'kehidupan sehari-hari dan lingkungan',
+    smp: 'aktivitas sosial dan ekonomi dasar',
+    sma_smk: 'fenomena sosial dan ekonomi lebih kompleks',
+  },
+  ppkn: {
+    sd: 'hak, kewajiban, dan aturan sederhana',
+    smp: 'nilai dan norma di masyarakat',
+    sma_smk: 'konsep kebangsaan dan aplikasi nyata',
+  },
+  fisika: {
+    sd: 'fenomena sehari-hari yang konkret',
+    smp: 'konsep dasar gaya dan gerak',
+    sma_smk: 'analisis konsep fisika dan penerapan',
+  },
+  kimia: {
+    sd: 'sifat benda dan perubahan sederhana',
+    smp: 'zat, reaksi, dan perubahan wujud',
+    sma_smk: 'reaksi dan konsep kimia lebih terstruktur',
+  },
+  broadcasting: {
+    sd: 'media dan komunikasi sederhana',
+    smp: 'pesan dan media dasar',
+    sma_smk: 'analisis media dan audiens',
+  },
+  informatika: {
+    sd: 'alat dan fungsi komputer dasar',
+    smp: 'data, jaringan, dan aplikasi dasar',
+    sma_smk: 'sistem informasi dan solusi digital',
+  },
+  tkj: {
+    sd: 'pengenalan perangkat sederhana',
+    smp: 'jaringan dan konektivitas dasar',
+    sma_smk: 'arsitektur dan troubleshooting jaringan',
+  },
+  desain_grafis: {
+    sd: 'warna, bentuk, dan gambar sederhana',
+    smp: 'komposisi dan elemen visual',
+    sma_smk: 'desain komunikasi visual dan tujuan',
+  },
+  sd: {
+    sd: 'materi dasar yang sesuai SD',
+    smp: 'materi dasar yang lebih luas',
+    sma_smk: 'materi dasar yang dipakai untuk konteks lanjut',
+  },
+  smp: {
+    sd: 'materi sederhana untuk pengenalan',
+    smp: 'materi sesuai SMP',
+    sma_smk: 'materi yang bisa dikembangkan ke level atas',
+  },
+  sma_smk: {
+    sd: 'materi ringan untuk pengantar',
+    smp: 'materi menengah yang bisa dipahami',
+    sma_smk: 'materi sesuai SMA/SMK',
+  },
+};
+
+function pickRandom<T>(items: readonly T[]): T {
+  return items[Math.floor(Math.random() * items.length)];
+}
+
 function getProviderApiKey(): string | undefined {
   return process.env.GROQ_API_KEY || process.env.GROQ_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY;
 }
 
 function buildPrompt(theme: QuestionTheme, difficulty: string, grade: QuestionGrade = 'smp'): string {
   const themeDesc = THEME_PROMPTS[theme];
-  const difficultyDesc = DIFFICULTY_DESC[difficulty] || 'sedang';
+  const gradeDifficulty = GRADE_DIFFICULTY[grade] || 'medium';
+  const difficultyDesc = DIFFICULTY_DESC[gradeDifficulty] || DIFFICULTY_DESC.medium;
   const gradeContext = GRADE_CONTEXT[grade] || GRADE_CONTEXT.smp;
-  // Concise prompt to minimize token usage. Instruct model to output ONLY a single JSON object.
-  return `JSON_ONLY\n{"question":"...","options":["","","",""],"correctAnswer":0,"theme":"${theme}","difficulty":"${difficulty}"}\nGenerate one Indonesian multiple-choice question about ${themeDesc}. Grade: ${grade}. ${gradeContext}. Difficulty: ${difficultyDesc}. IMPORTANT: The question must be appropriate for this grade level and should not use content from a higher grade. Output must be exactly one JSON object matching the example.`;
+  const hints = VARIETY_HINTS[theme] || VARIETY_HINTS.general;
+  const varietyHint = pickRandom(hints);
+  const format = pickRandom(QUESTION_FORMATS);
+  const topic = pickRandom(THEME_TOPIC_BANKS[theme] || THEME_TOPIC_BANKS.general);
+  const curriculumRule = THEME_CURRICULUM_RULES[theme]?.[grade] || 'sesuai tingkat kelas';
+  const name = pickRandom(NAME_BANK);
+  const object = pickRandom(OBJECT_BANKS[theme] || OBJECT_BANKS.general);
+  const promptSeed = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  return `JSON_ONLY\n{"question":"...","options":["","","",""],"correctAnswer":0}\nBuat 1 soal pilihan ganda Indonesia tentang ${themeDesc}. Grade: ${grade}. ${gradeContext}. Level: ${difficultyDesc}. Format: ${format}. Topik: ${topic}. Aturan kurikulum: ${curriculumRule}. Gunakan konteks ${varietyHint} dan nama/objek baru seperti ${name} dan ${object}. Hindari pola berulang. Output hanya 1 JSON.`;
 }
 
 function parseJsonContent(content: string): GeneratedQuestionData {
@@ -105,9 +300,9 @@ async function generateWithGroq(theme: QuestionTheme, difficulty: string, grade:
         body: JSON.stringify({
           model,
           messages: [{ role: 'user', content: buildPrompt(theme, difficulty, grade) }],
-          temperature: 0.7,
+          temperature: 0.95,
           max_completion_tokens: maxTokens,
-          top_p: 1,
+          top_p: 0.95,
           ...(model.includes('gpt-oss') ? { reasoning_effort: 'medium' } : {}),
           stream: false,
           stop: null,
