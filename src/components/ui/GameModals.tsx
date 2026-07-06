@@ -55,7 +55,7 @@ export const GameModals = ({ onAnswerQuestion }: GameModalsProps) => {
   } = useGameStore();
   const { awardedItem, awardContext, closeAwardedItemModal } = useGameStore();
 
-  const [timeRemaining, setTimeRemaining] = useState(15);
+  const [timeRemaining, setTimeRemaining] = useState(30);
   const [isTimeUp, setIsTimeUp] = useState(false);
   const lastQuestionIdRef = useRef<string | null>(null);
   
@@ -69,7 +69,7 @@ export const GameModals = ({ onAnswerQuestion }: GameModalsProps) => {
 
   const currentPlayer = players[currentPlayerIndex];
 
-  // Timer untuk jawab soal (15 detik)
+  // Timer untuk jawab soal (30 detik)
   useEffect(() => {
     if (phase !== 'question' || !currentQuestion) return;
     // Jangan jalankan timer/modal ini untuk bot — bot tidak perlu melihat popup soal
@@ -77,7 +77,7 @@ export const GameModals = ({ onAnswerQuestion }: GameModalsProps) => {
 
     // Only reset timer when a new question is presented (avoid resetting when freeze toggles)
     if (lastQuestionIdRef.current !== currentQuestion.id) {
-      setTimeRemaining(15);
+      setTimeRemaining(30);
       setSelectedAnswerIdx(null);
       setShowFeedback(false);
       setIsQuestionExpanded(false);
@@ -153,13 +153,13 @@ export const GameModals = ({ onAnswerQuestion }: GameModalsProps) => {
               <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: WOOD_DARK }}>
                 <div
                   className={`h-full transition-all duration-300 ${
-                    timeRemaining <= 5 
-                      ? 'bg-rose-500 animate-pulse' 
-                      : timeRemaining <= 10
-                      ? 'bg-amber-400'
-                      : 'bg-emerald-400'
-                  }`}
-                  style={{ width: `${(timeRemaining / 15) * 100}%` }}
+                      timeRemaining <= 5 
+                        ? 'bg-rose-500 animate-pulse' 
+                        : timeRemaining <= 10
+                        ? 'bg-amber-400'
+                        : 'bg-emerald-400'
+                    }`}
+                    style={{ width: `${(timeRemaining / 30) * 100}%` }}
                 />
               </div>
               <p className="text-center text-sm font-semibold" style={{ color: WOOD_LIGHT }}>
