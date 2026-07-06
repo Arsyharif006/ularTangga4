@@ -71,7 +71,6 @@ const GROQ_MODELS = [
   'openai/gpt-oss-20b',
   'llama-3.1-8b-instant',
   'llama-3.3-70b-versatile',
-  ''
 ] as const;
 
 function getProviderApiKey(): string | undefined {

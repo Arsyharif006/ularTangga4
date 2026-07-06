@@ -147,7 +147,7 @@ export const GameModals = ({ onAnswerQuestion }: GameModalsProps) => {
       {/* QUESTION MODAL (hidden for bot players) */}
       <Modal isOpen={phase === 'question' && currentQuestion !== null && !players[currentPlayerIndex]?.isBot} title="Jawab Pertanyaan!">
         {currentQuestion && (
-          <div className="space-y-6">
+          <div className="space-y-6 max-h-[75vh] overflow-y-auto pr-1 -mr-1">
             {/* Timer Progress Bar */}
             <div className="space-y-2">
               <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: WOOD_DARK }}>
