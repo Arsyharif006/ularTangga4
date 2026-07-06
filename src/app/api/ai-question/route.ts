@@ -17,12 +17,12 @@ interface GeneratedQuestionData {
 
 const THEME_PROMPTS: Record<QuestionTheme, string> = {
   general: 'pengetahuan umum',
-  programming: 'pemrograman dan ilmu komputer',
+  programming: 'pemrograman web',
   sistem_digital: 'sistem digital dan logika gerbang',
   logika_mtk: 'logika matematika',
   matematika: 'matematika dan perhitungan',
   english: 'bahasa inggris dan tata bahasa',
-  history: 'sejarah',
+  history: 'sejarah Indonesia',
   bahasa_indonesia: 'bahasa Indonesia dan pemahaman bacaan',
   ipa: 'ilmu pengetahuan alam',
   ips: 'ilmu pengetahuan sosial',
@@ -93,7 +93,7 @@ function buildPrompt(theme: QuestionTheme, grade: QuestionGrade = 'smp'): string
   return `JSON_ONLY
 {"question":"...","options":["","","",""],"correctAnswer":0}
 Buat 1 soal pilihan ganda berbahasa Indonesia/inggris sesuai tema tentang ${themeDesc}, ${gradeContext}, dengan tingkat kesulitan ${difficultyDesc}.
-Batasi panjang teks pertanyaan menjadi 10-20 kata saja; buat kalimat singkat, langsung ke inti, dan mudah dipahami.
+Batasi panjang teks pertanyaan menjadi 10-25 kata saja; buat kalimat singkat, langsung ke inti, dan mudah dipahami.
 Gunakan gaya bahasa: ${gradeStyle}.
 Bebaskan sepenuhnya jenis soal (hitungan, cerita, analisis, pemahaman, logika, dll), konteksnya (nama, benda, situasi, angka), dan sudut pandangnya — asal tetap relevan dengan tema dan jenjang di atas. Jangan terpaku pada satu pola atau contoh tertentu, buat soal terasa baru dan tidak monoton setiap kali dibuat.
 Output HANYA 1 JSON valid berisi field question, options (4 string pilihan jawaban), dan correctAnswer (index 0-3). Jangan tambahkan teks lain di luar JSON.`;
