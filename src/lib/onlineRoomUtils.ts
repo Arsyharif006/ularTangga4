@@ -39,6 +39,7 @@ export function createRoomObject(request: CreateRoomRequest, createdByPlayerId: 
     password: request.password || undefined,
     players: [],
     theme: (request.theme as any) || 'general',
+    grade: request.grade || 'smp',
     status: 'waiting',
     currentTurnPlayerId: '0', // ← sekarang valid karena tipe sudah string
     createdAt: Date.now(),

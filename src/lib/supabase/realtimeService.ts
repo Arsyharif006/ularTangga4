@@ -32,6 +32,7 @@ export class SupabaseRealtimeService {
       roomName: data.room_name,
       createdBy: data.created_by,
       theme: data.theme,
+      grade: data.grade || 'smp' as const,
       status: data.status,
       currentTurnPlayerId: data.current_turn_player_id,
       maxPlayers: data.max_players || 4,

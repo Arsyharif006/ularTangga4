@@ -549,8 +549,17 @@ export default function WaitingRoomPage() {
           {/* Room Info */}
           <div className="grid grid-cols-2 gap-3 mb-6">
             <div className="rounded-2xl p-4" style={{ background: BOARD, border: `2px solid ${WOOD}`, boxShadow: `3px 3px 0 ${WOOD_DARK}` }}>
-              <p style={{ ...labelStyle, marginBottom: '6px' }}><Sparkles className="w-3.5 h-3.5" /> Tema</p>
-              <p className="font-bold text-lg capitalize truncate" style={{ color: INK }}>{room?.theme}</p>
+              <p style={{ ...labelStyle, marginBottom: '6px' }}><Sparkles className="w-3.5 h-3.5" /> Tingkat</p>
+              <p className="font-bold text-base capitalize" style={{ color: INK }}>
+                {room?.grade === 'sd' ? 'SD' : room?.grade === 'smp' ? 'SMP' : 'SMA/SMK'}
+              </p>
+            </div>
+
+            <div className="rounded-2xl p-4" style={{ background: BOARD, border: `2px solid ${WOOD}`, boxShadow: `3px 3px 0 ${WOOD_DARK}` }}>
+              <p style={{ ...labelStyle, marginBottom: '6px' }}><Sparkles className="w-3.5 h-3.5" /> Mata Pelajaran</p>
+              <p className="font-bold text-base capitalize truncate" style={{ color: INK }}>
+                {room?.theme ? room.theme.replace('_', ' ') : 'N/A'}
+              </p>
             </div>
 
             <div className="rounded-2xl p-4 flex items-center gap-3" style={{ background: BOARD, border: `2px solid ${WOOD}`, boxShadow: `3px 3px 0 ${WOOD_DARK}` }}>

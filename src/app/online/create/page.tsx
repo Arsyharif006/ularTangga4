@@ -118,18 +118,20 @@ export default function CreateRoomPage() {
       setIsCreating(true);
       setErrorMsg('');
       if (!playerName.trim()) { setErrorMsg('Nama pemain harus diisi'); setIsCreating(false); return; }
+      if (!selectedGrade) { setErrorMsg('Pilih tingkat sekolah terlebih dahulu'); setIsCreating(false); return; }
+      if (!selectedSubject) { setErrorMsg('Pilih mata pelajaran terlebih dahulu'); setIsCreating(false); return; }
       const { data: sessionData } = await supabase.auth.getSession();
       const userId = sessionData?.session?.user?.id ?? null;
       if (!userId) { setErrorMsg('Anda harus login dengan Google untuk membuat room online'); setIsCreating(false); return; }
 
       const playerId = generatePlayerId();
-      const room     = createRoomObject({ roomName, theme, password: usePassword ? password : undefined }, playerId);
+      const room     = createRoomObject({ roomName, theme: selectedSubject, grade: selectedGrade as 'sd' | 'smp' | 'sma_smk', password: usePassword ? password : undefined }, playerId);
       room.roomId    = roomCode;
       const player   = createPlayerObject({ roomId: roomCode, playerName, color: selectedColor, password: usePassword ? password : undefined }, playerId, generatePlayerId());
       room.players.push(player);
 
       try {
-        const createdRoom = await supabaseGameService.createRoom(roomName, theme, playerName, selectedColor, roomCode, userId);
+        const createdRoom = await supabaseGameService.createRoom(roomName, selectedSubject, playerName, selectedColor, roomCode, userId);
         try { await supabase.from('user_stats').upsert({ user_id: userId, email: sessionData?.session?.user?.email || null }); } catch {}
         room.roomId = createdRoom.roomId;
         const serverPlayerId = (createdRoom as any).players?.[0]?.id;

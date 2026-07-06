@@ -10,6 +10,7 @@ export interface GameRoom {
   password?: string;
   players: OnlinePlayer[];
   theme: QuestionTheme;
+  grade: 'sd' | 'smp' | 'sma_smk';
   status: 'waiting' | 'playing' | 'finished';
   currentTurnPlayerId: string; // ← number → string
   createdAt: number;
@@ -55,6 +56,7 @@ export interface JoinRoomRequest {
 export interface CreateRoomRequest {
   roomName: string;
   theme: string;
+  grade: 'sd' | 'smp' | 'sma_smk';
   password?: string;
   maxPlayers?: number;
 }
