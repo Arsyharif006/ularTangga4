@@ -131,7 +131,7 @@ export default function CreateRoomPage() {
       room.players.push(player);
 
       try {
-        const createdRoom = await supabaseGameService.createRoom(roomName, selectedSubject, playerName, selectedColor, roomCode, userId);
+        const createdRoom = await supabaseGameService.createRoom(roomName, selectedSubject, playerName, selectedColor, roomCode, userId, selectedGrade as 'sd' | 'smp' | 'sma_smk');
         try { await supabase.from('user_stats').upsert({ user_id: userId, email: sessionData?.session?.user?.email || null }); } catch {}
         room.roomId = createdRoom.roomId;
         const serverPlayerId = (createdRoom as any).players?.[0]?.id;

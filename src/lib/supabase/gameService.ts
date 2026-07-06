@@ -33,7 +33,8 @@ export class SupabaseGameService {
     creatorName: string,
     creatorColor: string,
     providedRoomCode?: string,
-    providedPlayerId?: string
+    providedPlayerId?: string,
+    grade?: 'sd' | 'smp' | 'sma_smk'
   ): Promise<GameRoom> {
     try {
       const roomCode = this.normalizeRoomCode(providedRoomCode || generateRoomCode());
@@ -51,6 +52,7 @@ export class SupabaseGameService {
           room_name: roomName,
           created_by: creatorName,
           theme,
+          grade: grade || 'smp',
           status: 'waiting',
           current_turn_player_id: creatorPlayerId,
           max_players: 4,
