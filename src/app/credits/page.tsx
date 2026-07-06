@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { ChevronLeft, Gamepad2, Heart, Sparkles, Trophy, Users } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { PAGE_CREDITS } from '@/data/credits';
 
 const BOARD = '#EFDFB8';
 const BOARD_DARK = '#E2CC95';
@@ -13,33 +14,13 @@ const INK = '#3A2814';
 const ACCENT = '#FFD34D';
 const ACCENT_DEEP = '#8C5E00';
 
-const creditsSections = [
-  {
-    title: 'Game Project',
-    icon: <Sparkles className="h-4 w-4" />,
-    lines: ['Ular Tangga Digital', 'Versi edukatif yang penuh tantangan dan nostalgia.'],
-  },
-  {
-    title: 'Developer',
-    icon: <Gamepad2 className="h-4 w-4" />,
-    lines: ['Nama Developer Dummy', 'Konsep, UI/UX, gameplay, dan fitur progresif.'],
-  },
-  {
-    title: 'Dukungan',
-    icon: <Users className="h-4 w-4" />,
-    lines: ['Tim Pengembang & Penguji', 'Feedback, balancing, dan testing gameplay.'],
-  },
-  {
-    title: 'Institusi',
-    icon: <Trophy className="h-4 w-4" />,
-    lines: ['Universitas Indraprasta PGRI', 'Dukungan institusi dan semangat akademik.'],
-  },
-  {
-    title: 'Special Thanks',
-    icon: <Heart className="h-5 w-5" style={{ color: '#dc2626' }} />,
-    lines: ['Terima kasih untuk semua teman, rekan, dan pengguna.', 'Semoga aplikasi ini bermanfaat dan menyenangkan.'],
-  },
-];
+const ICON_MAP: Record<string, React.ReactNode> = {
+  sparkles: <Sparkles className="h-4 w-4" />,
+  gamepad: <Gamepad2 className="h-4 w-4" />,
+  users: <Users className="h-4 w-4" />,
+  trophy: <Trophy className="h-4 w-4" />,
+  heart: <Heart className="h-5 w-5" style={{ color: '#dc2626' }} />,
+};
 
 export default function CreditsPage() {
   const router = useRouter();
@@ -78,7 +59,7 @@ export default function CreditsPage() {
                   <span className="text-sm font-black uppercase tracking-[0.25em]">Game Project</span>
                 </div>
                 <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full border-4" style={{ background: BOARD_DARK, borderColor: WOOD }}>
-                  <Image src="/image/ular-tangga-logo.svg" alt="Logo Ular Tangga" width={90} height={90} />
+                  <Image src="/image/Snake.png" alt="Logo Ular Tangga" width={90} height={90} />
                 </div>
                 <h2 className="text-2xl font-black" style={{ color: INK }}>Ular Tangga Digital</h2>
                 <p className="mt-2 max-w-xl text-sm leading-relaxed" style={{ color: WOOD_DARK }}>
@@ -99,7 +80,7 @@ export default function CreditsPage() {
                 >
                   <div className="mb-8 flex flex-col items-center">
                     <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-full border-4" style={{ background: BOARD, borderColor: WOOD }}>
-                      <Image src="/image/ular-tangga-logo.svg" alt="Logo Ular Tangga" width={70} height={70} />
+                      <Image src="/image/Snake.png" alt="Logo Ular Tangga" width={70} height={70} />
                     </div>
                     <p className="text-[10px] font-black uppercase tracking-[0.35em]" style={{ color: ACCENT }}>Now Showing</p>
                     <h3 className="mt-2 text-xl font-black" style={{ color: '#fff7e8' }}>Ular Tangga Edukatif</h3>
@@ -108,11 +89,18 @@ export default function CreditsPage() {
                     </p>
                   </div>
 
-                  {creditsSections.map((section, index) => (
+                  {PAGE_CREDITS.map((section, index) => (
                     <div key={section.title} className="mb-8 w-full max-w-md">
-                      <div className="mb-3 flex items-center justify-center gap-2 text-sm font-black uppercase tracking-[0.25em]" style={{ color: ACCENT }}>
-                        {section.icon}
-                        <span>{section.title}</span>
+                      <div className="mb-3 flex flex-col items-center gap-2">
+                        {section.showImage && (
+                          <div className="mb-2 flex h-14 w-14 items-center justify-center rounded-full border-2" style={{ background: BOARD_DARK, borderColor: WOOD }}>
+                            <Image src="/image/Univ.png" alt="Logo Universitas Indraprasta PGRI" width={60} height={60} />
+                          </div>
+                        )}
+                        <div className="flex items-center justify-center gap-2 text-sm font-black uppercase tracking-[0.25em]" style={{ color: ACCENT }}>
+                          {ICON_MAP[section.iconKey]}
+                          <span>{section.title}</span>
+                        </div>
                       </div>
                       <div className="space-y-2 rounded-[18px] border-2 p-4" style={{ background: 'rgba(255,247,232,0.08)', borderColor: 'rgba(255,255,255,0.12)' }}>
                         {section.lines.map((line) => (
@@ -121,7 +109,7 @@ export default function CreditsPage() {
                           </p>
                         ))}
                       </div>
-                      {index === creditsSections.length - 1 && (
+                      {index === PAGE_CREDITS.length - 1 && (
                         <div className="mt-6 rounded-[18px] border-2 p-4" style={{ background: 'rgba(255, 211, 77, 0.12)', borderColor: 'rgba(255, 211, 77, 0.35)' }}>
                           <p className="text-sm font-black uppercase tracking-[0.25em]" style={{ color: ACCENT }}>Terima kasih</p>
                           <p className="mt-2 text-sm leading-relaxed" style={{ color: '#f7ebd0' }}>Semoga setiap langkah di papan membawa pengalaman belajar yang menyenangkan.</p>

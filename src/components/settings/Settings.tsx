@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
   ChevronLeft,
   User,
@@ -22,6 +23,7 @@ import supabase from '@/lib/supabase/client';
 import { useAudio } from '@/lib/audio/AudioProvider';
 import { useSettingsStore } from '@/stores/settingsStore';
 import PurchaseModal from '@/components/ui/PurchaseModal';
+import { SETTINGS_CREDITS } from '@/data/credits';
 import packageJson from '../../../package.json';
 
 // ── Design tokens (sama dengan Main Menu) ───────────────────
@@ -46,14 +48,6 @@ const DEFAULT_UNLOCKED_BOARDS = ['classic','winter'];
 const TRACKS = [
   { id: 0, name: 'Battle March',   artist: 'Epic Adventure', emoji: '⚔️', genre: 'Action',   dur: '2:15' },
   { id: 1, name: 'Snake & Ladder', artist: 'Playful Beats',  emoji: '🎲', genre: 'Cheerful', dur: '1:58' },
-];
-
-const CREDIT_SECTIONS = [
-  { title: 'Pembuat', lines: ['Penyusun', 'Muhammad Arya Ramadhan', 'Designer', 'Muhammad Arya Ramadhan, Muhammad Dhaffa', 'Programmer', 'Muhammad Arya Ramadhan', 'Analisis Sistem', 'Muhammad Arya Ramadhan, Muhammad Alif Raihandi, Muhammad Dhaffa'] },
-  { title: 'Tim', lines: [' Kelompok 4', 'Anggota Tim', 'Muhammad Arya Ramadhan, Muhammad Alif Raihandi, Muhammad Dhaffa','Rafifah Luthfiyah Putri, Agnia Zahrah Wibowo','Andhika Putra, Aidil', 'Peran dan kontribusi setiap anggota'] },
-  { title: 'Dukungan', lines: ['Dosen : Ahmad Fauzi M.Kom. ', 'Feedback dan balancing.'] },
-  { title: 'Institusi', lines: ['Universitas Indraprasta PGRI', 'Dukungan institusi dan semangat akademik.'] },
-  { title: 'Ucapan', lines: ['Terima kasih untuk semua teman, rekan, dan pengguna.', 'Semoga aplikasi ini bermanfaat dan menyenangkan.'] },
 ];
 
 // ── Equaliser bars ───────────────────────────────────────────
@@ -1127,11 +1121,11 @@ export const Settings = () => {
             >
               <div className="mb-8 flex flex-col items-center">
                 <div className="mb-4 flex items-center justify-center gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full border-2" style={{ background: BOARD_DARK, borderColor: WOOD }}>
-                    <span className="text-3xl">🎲</span>
+                  <div className="flex h-22 w-22 items-center justify-center rounded-full border-2" style={{ background: BOARD_DARK, borderColor: WOOD }}>
+                    <Image src="/image/Snake.png" alt="Ular Tangga" width={60} height={60} />
                   </div>
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full border-2" style={{ background: BOARD_DARK, borderColor: WOOD }}>
-                    <span className="text-2xl">🏛️</span>
+                  <div className="flex h-22 w-22 items-center justify-center rounded-full border-2" style={{ background: BOARD_DARK, borderColor: WOOD }}>
+                    <Image src="/image/Univ.png" alt="Universitas Indraprasta PGRI" width={60} height={60} />
                   </div>
                 </div>
                 <p className="text-[10px] font-black uppercase tracking-[0.35em]" style={{ color: ACCENT }}>Credits</p>
@@ -1141,8 +1135,8 @@ export const Settings = () => {
                 </p>
               </div>
 
-              {CREDIT_SECTIONS.map((section) => (
-                <div key={section.title} className="mb-4 w-full max-w-2xl text-center">
+              {SETTINGS_CREDITS.map((section) => (
+                <div key={section.title} className="mb-4 w-full max-w-2xl text-center\">
                   <h4 className="mb-2 text-sm font-black uppercase tracking-[0.25em]" style={{ color: ACCENT }}>{section.title}</h4>
                   {section.lines.map((line) => (
                     <p key={line} className="text-sm leading-relaxed text-[#f7ebd0]">
