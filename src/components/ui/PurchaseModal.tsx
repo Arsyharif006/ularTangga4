@@ -31,7 +31,7 @@ export const PurchaseModal = ({ isOpen, title, description, cost, onCancel, onCo
         <p className="text-sm font-semibold" style={{ color: WOOD_LIGHT }}>{description}</p>
         {typeof cost === 'number' && (
           <div className="flex items-center gap-2">
-            <div className="text-2xl">💰</div>
+            <div className="text-2xl">🪙</div>
             <div>
               <div className="font-black text-lg" style={{ color: ACCENT_DEEP }}>{cost}</div>
               <div className="text-[10px] font-bold uppercase tracking-wide" style={{ color: WOOD_LIGHT }}>Biaya</div>
