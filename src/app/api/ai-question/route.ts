@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import type { QuestionTheme } from '@/types/game';
+import type { QuestionTheme, QuestionGrade } from '@/types/game';
 import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'nodejs';
@@ -43,6 +43,12 @@ const DIFFICULTY_DESC: Record<string, string> = {
   hard: 'sulit (tingkat lanjut)',
 };
 
+const GRADE_CONTEXT: Record<QuestionGrade, string> = {
+  sd: 'untuk siswa SD, gunakan konsep dasar yang sederhana, bahasa mudah, dan tidak memakai materi di atas tingkat SD',
+  smp: 'untuk siswa SMP, gunakan materi tingkat menengah yang sesuai kurikulum SMP dan hindari topik SMA/SMK yang terlalu sulit',
+  sma_smk: 'untuk siswa SMA/SMK, gunakan materi tingkat lanjut yang sesuai kurikulum SMA/SMK dan hindari materi dasar SD/SMP',
+};
+
 const GROQ_MODELS = [
   'openai/gpt-oss-120b',
   'openai/gpt-oss-20b',
@@ -54,11 +60,12 @@ function getProviderApiKey(): string | undefined {
   return process.env.GROQ_API_KEY || process.env.GROQ_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY;
 }
 
-function buildPrompt(theme: QuestionTheme, difficulty: string): string {
+function buildPrompt(theme: QuestionTheme, difficulty: string, grade: QuestionGrade = 'smp'): string {
   const themeDesc = THEME_PROMPTS[theme];
   const difficultyDesc = DIFFICULTY_DESC[difficulty] || 'sedang';
+  const gradeContext = GRADE_CONTEXT[grade] || GRADE_CONTEXT.smp;
   // Concise prompt to minimize token usage. Instruct model to output ONLY a single JSON object.
-  return `JSON_ONLY\n{"question":"...","options":["","","",""],"correctAnswer":0,"theme":"${theme}","difficulty":"${difficulty}"}\nGenerate one Indonesian multiple-choice question about ${themeDesc}. Difficulty: ${difficultyDesc}. Output must be exactly one JSON object matching the example.`;
+  return `JSON_ONLY\n{"question":"...","options":["","","",""],"correctAnswer":0,"theme":"${theme}","difficulty":"${difficulty}"}\nGenerate one Indonesian multiple-choice question about ${themeDesc}. Grade: ${grade}. ${gradeContext}. Difficulty: ${difficultyDesc}. IMPORTANT: The question must be appropriate for this grade level and should not use content from a higher grade. Output must be exactly one JSON object matching the example.`;
 }
 
 function parseJsonContent(content: string): GeneratedQuestionData {
@@ -78,7 +85,7 @@ function parseJsonContent(content: string): GeneratedQuestionData {
   };
 }
 
-async function generateWithGroq(theme: QuestionTheme, difficulty: string): Promise<GeneratedQuestionData> {
+async function generateWithGroq(theme: QuestionTheme, difficulty: string, grade: QuestionGrade): Promise<GeneratedQuestionData> {
   const apiKey = getProviderApiKey();
   if (!apiKey) {
     throw new Error('GROQ_API_KEY belum diatur. Tambahkan variabel environment di Vercel sebelum deploy.');
@@ -97,7 +104,7 @@ async function generateWithGroq(theme: QuestionTheme, difficulty: string): Promi
         },
         body: JSON.stringify({
           model,
-          messages: [{ role: 'user', content: buildPrompt(theme, difficulty) }],
+          messages: [{ role: 'user', content: buildPrompt(theme, difficulty, grade) }],
           temperature: 0.7,
           max_completion_tokens: maxTokens,
           top_p: 1,
@@ -151,8 +158,8 @@ async function generateWithGroq(theme: QuestionTheme, difficulty: string): Promi
   throw lastError || new Error('Groq API gagal setelah mencoba beberapa model');
 }
 
-async function generateWithProvider(theme: QuestionTheme, difficulty: string): Promise<GeneratedQuestionData> {
-  return generateWithGroq(theme, difficulty);
+async function generateWithProvider(theme: QuestionTheme, difficulty: string, grade: QuestionGrade): Promise<GeneratedQuestionData> {
+  return generateWithGroq(theme, difficulty, grade);
 }
 
 export async function POST(request: Request) {
@@ -160,13 +167,14 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
     const theme = body.theme as QuestionTheme;
     const difficulty = (body.difficulty || 'medium') as string;
+    const grade = (body.grade || 'smp') as QuestionGrade;
 
     if (!theme) {
       return NextResponse.json({ success: false, error: 'Theme tidak valid' }, { status: 400 });
     }
 
-    console.log('[AI] Requesting question', { theme, difficulty, hasApiKey: Boolean(getProviderApiKey()) });
-    const data = await generateWithProvider(theme, difficulty);
+    console.log('[AI] Requesting question', { theme, difficulty, grade, hasApiKey: Boolean(getProviderApiKey()) });
+    const data = await generateWithProvider(theme, difficulty, grade);
 
     // Persist generated question server-side using service role to bypass RLS
     try {

@@ -2,7 +2,7 @@
 // AI Question Generator - Groq-only integration
 // ============================================================
 
-import type { Question, QuestionTheme } from '@/types/game';
+import type { Question, QuestionTheme, QuestionGrade } from '@/types/game';
 import supabase from './supabase/client';
 import { ALL_QUESTIONS } from '@/data/questions';
 
@@ -19,7 +19,7 @@ interface GeneratedQuestionData {
 const REQUEST_BACKOFF_MS = 600;
 const LAST_REQUEST_BY_THEME = new Map<string, number>();
 
-async function requestAIQuestion(theme: QuestionTheme, difficulty: string): Promise<GeneratedQuestionData> {
+async function requestAIQuestion(theme: QuestionTheme, difficulty: string, grade?: QuestionGrade): Promise<GeneratedQuestionData> {
   const provider: AIProvider = 'groq';
   const now = Date.now();
   const key = `${provider}:${theme}:${difficulty}`;
@@ -41,7 +41,7 @@ async function requestAIQuestion(theme: QuestionTheme, difficulty: string): Prom
       const response = await fetch('/api/ai-question', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, theme, difficulty }),
+        body: JSON.stringify({ provider, theme, difficulty, grade }),
       });
 
       const payload = await response.json().catch(() => null);
@@ -133,10 +133,11 @@ async function saveAIQuestionToDatabase(question: Question): Promise<void> {
 
 export async function generateQuestionFromAI(
   theme: QuestionTheme,
-  difficulty: 'easy' | 'medium' | 'hard' = 'medium'
+  difficulty: 'easy' | 'medium' | 'hard' = 'medium',
+  grade?: QuestionGrade
 ): Promise<Question> {
   try {
-    const data = await requestAIQuestion(theme, difficulty);
+    const data = await requestAIQuestion(theme, difficulty, grade);
 
     const id = `ai_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     const question: Question = {
@@ -174,14 +175,15 @@ export async function generateQuestionFromAI(
 export async function generateQuestionsFromAI(
   theme: QuestionTheme,
   count: number = 5,
-  difficulty: 'easy' | 'medium' | 'hard' = 'medium'
+  difficulty: 'easy' | 'medium' | 'hard' = 'medium',
+  grade?: QuestionGrade
 ): Promise<Question[]> {
   const questions: Question[] = [];
   const errors: string[] = [];
 
   for (let i = 0; i < count; i++) {
     try {
-      const question = await generateQuestionFromAI(theme, difficulty);
+      const question = await generateQuestionFromAI(theme, difficulty, grade);
       questions.push(question);
       await new Promise((resolve) => setTimeout(resolve, 250));
     } catch (error) {

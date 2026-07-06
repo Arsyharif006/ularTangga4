@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check, Crown, Dices } from 'lucide-react';
 import { useGameStore } from '@/stores/gameStore';
-import type { Player, QuestionTheme, PlayerColor } from '@/types/game';
+import type { Player, QuestionTheme, QuestionGrade, PlayerColor } from '@/types/game';
 import { BOARD_THEME_LIST, pickRandomBoardTheme, type SelectableBoardThemeName } from '@/data/boardThemes';
 import { BoardThemePreview } from '@/components/BoardThemePreview';
 import { BoardThemeSpinOverlay } from '@/components/BoardThemeSpinOverlay';
@@ -134,7 +134,7 @@ export const GameSetup = ({ mode = 'offline' }: GameSetupProps) => {
   const [stepIndex,      setStepIndex]      = useState(0);
   const [direction,      setDirection]      = useState(1);
   const [questionTheme,  setQuestionTheme]  = useState<QuestionTheme>('general');
-  const [selectedGrade,  setSelectedGrade]  = useState<QuestionTheme | null>(null);
+  const [selectedGrade,  setSelectedGrade]  = useState<QuestionGrade | null>(null);
   const [boardTheme,     setBoardTheme]     = useState<SelectableBoardThemeName>('classic');
   const [playerCount,    setPlayerCount]    = useState(0);
   const [selectedColors, setSelectedColors] = useState<(PlayerColor | null)[]>([]);
@@ -260,7 +260,7 @@ export const GameSetup = ({ mode = 'offline' }: GameSetupProps) => {
     } catch (err) {
       console.error('Failed to import question system at game start:', err);
     }
-    initGame(buildPlayers(), questionTheme, boardTheme);
+    initGame(buildPlayers(), questionTheme, boardTheme, selectedGrade || 'smp');
     router.push(isComputerMode ? '/vs-ai/game?countdown=3' : '/offline/game?countdown=3');
   };
 
@@ -274,7 +274,7 @@ export const GameSetup = ({ mode = 'offline' }: GameSetupProps) => {
     } catch (err) {
       console.error('Failed to import question system at game start:', err);
     }
-    initGame(buildPlayers(), questionTheme, spinResult);
+    initGame(buildPlayers(), questionTheme, spinResult, selectedGrade || 'smp');
     router.push(isComputerMode ? '/vs-ai/game?countdown=3' : '/offline/game?countdown=3');
   };
 
@@ -600,9 +600,9 @@ export const GameSetup = ({ mode = 'offline' }: GameSetupProps) => {
                   <div className="grid grid-cols-2 gap-3">
                     {['sd','smp','sma_smk'].map(g => {
                       const label = QUESTION_THEME_OPTIONS.find(q => q.value === g)?.label || g;
-                      const active = selectedGrade === (g as QuestionTheme);
+                      const active = selectedGrade === (g as QuestionGrade);
                       return (
-                        <button key={g} onClick={() => { setSelectedGrade(g as QuestionTheme); setDirection(1); setStepIndex(i => STEPS.indexOf('question-subject')); }}
+                        <button key={g} onClick={() => { setSelectedGrade(g as QuestionGrade); setDirection(1); setStepIndex(i => STEPS.indexOf('question-subject')); }}
                           className="py-4 px-3 rounded-2xl font-bold transition-all transform hover:scale-[1.02]"
                           style={{ background: active ? ACCENT_TINT : BOARD, border: `3px solid ${active ? ACCENT_DEEP : WOOD}`, color: active ? ACCENT_DEEP : INK, boxShadow: active ? `3px 3px 0 ${ACCENT_DEEP}` : `3px 3px 0 ${WOOD_DARK}` }}>
                           {label}
@@ -749,71 +749,59 @@ export const GameSetup = ({ mode = 'offline' }: GameSetupProps) => {
                     })()}
                   </div>
 
-                  {/* Mulai Game button */}
-                  <button
-                    onClick={handleStartGame}
-                    className="w-full py-3.5 px-6 rounded-2xl font-extrabold uppercase tracking-wider text-base transition-all transform hover:scale-[1.02] shadow-lg"
-                    style={{
-                      background: `linear-gradient(135deg, ${ACCENT}, #e8b820)`,
-                      color:       INK,
-                      boxShadow:   `0 4px 20px rgba(255,211,77,0.30), 0 2px 0 ${ACCENT_DEEP}`,
-                    }}
-                  >
-                    Mulai Game
-                  </button>
                 </div>
               )}
             </motion.div>
           </AnimatePresence>
         </div>
 
-        {/* Footer nav (players-config, question-grade & question-subject) */}
-        {(currentStep === 'players-config' || currentStep === 'question-grade' || currentStep === 'question-subject') && (
-          <div className="max-w-2xl mx-auto w-full flex gap-3 pt-6">
-            <button
-              onClick={goBack}
-              className="px-6 py-3.5 rounded-2xl font-bold uppercase tracking-wider text-sm transition-all flex items-center gap-2"
-              style={{
-                background:  BOARD,
-                border:      `3px solid ${WOOD}`,
-                color:        INK,
-                boxShadow:   `3px 3px 0 ${WOOD_DARK}`,
-              }}
-            >
-              Kembali
-            </button>
-            <button
-              onClick={goNext}
-              disabled={
-                (currentStep === 'players-config' && !allColorsSelected) ||
-                (currentStep === 'question-grade' && !selectedGrade) ||
-                (currentStep === 'question-subject' && !isSubjectSelected)
-              }
-              className="flex-1 py-3.5 px-6 rounded-2xl font-extrabold uppercase tracking-wider text-base transition-all transform flex items-center justify-center gap-2"
-              style={
-                (currentStep === 'players-config' && !allColorsSelected) ||
-                (currentStep === 'question-grade' && !selectedGrade) ||
-                (currentStep === 'question-subject' && !isSubjectSelected)
-                  ? {
-                      background: BOARD_DARK,
-                      color:       WOOD_LIGHT,
-                      cursor:      'not-allowed',
-                      border:      `3px solid ${WOOD}`,
-                      boxShadow:   `3px 3px 0 ${WOOD_DARK}`,
-                    }
-                  : {
-                      background: `linear-gradient(135deg, ${ACCENT}, #e8b820)`,
-                      color:       INK,
-                      boxShadow:   `0 4px 20px rgba(255,211,77,0.30), 0 2px 0 ${ACCENT_DEEP}`,
-                      border:      'none',
-                    }
-              }
-            >
-              Lanjut
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+        {/* Footer nav */}
+        <div className="max-w-2xl mx-auto w-full flex gap-3 pt-6">
+          <button
+            onClick={goBack}
+            className="px-6 py-3.5 rounded-2xl font-bold uppercase tracking-wider text-sm transition-all flex items-center gap-2"
+            style={{
+              background:  BOARD,
+              border:      `3px solid ${WOOD}`,
+              color:        INK,
+              boxShadow:   `3px 3px 0 ${WOOD_DARK}`,
+            }}
+          >
+            Kembali
+          </button>
+          <button
+            onClick={currentStep === 'board-theme' ? handleStartGame : goNext}
+            disabled={
+              (currentStep === 'players-count' && !playerCount) ||
+              (currentStep === 'players-config' && !allColorsSelected) ||
+              (currentStep === 'question-grade' && !selectedGrade) ||
+              (currentStep === 'question-subject' && !isSubjectSelected)
+            }
+            className="flex-1 py-3.5 px-6 rounded-2xl font-extrabold uppercase tracking-wider text-base transition-all transform flex items-center justify-center gap-2"
+            style={
+              (currentStep === 'players-count' && !playerCount) ||
+              (currentStep === 'players-config' && !allColorsSelected) ||
+              (currentStep === 'question-grade' && !selectedGrade) ||
+              (currentStep === 'question-subject' && !isSubjectSelected)
+                ? {
+                    background: BOARD_DARK,
+                    color:       WOOD_LIGHT,
+                    cursor:      'not-allowed',
+                    border:      `3px solid ${WOOD}`,
+                    boxShadow:   `3px 3px 0 ${WOOD_DARK}`,
+                  }
+                : {
+                    background: `linear-gradient(135deg, ${ACCENT}, #e8b820)`,
+                    color:       INK,
+                    boxShadow:   `0 4px 20px rgba(255,211,77,0.30), 0 2px 0 ${ACCENT_DEEP}`,
+                    border:      'none',
+                  }
+            }
+          >
+            {currentStep === 'board-theme' ? 'Mulai Game' : 'Lanjut'}
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {spinResult && <BoardThemeSpinOverlay resultTheme={spinResult} onDone={handleSpinDone} />}

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { useOnlineGameStore } from '@/stores/onlineGameStore';
 import playStepSound from '@/lib/audio/sfx';
-import type { Player, GamePhase, DiceValue, Question, PlacedBomb, QuestionTheme, GameItem, BoardThemeName } from '@/types/game';
+import type { Player, GamePhase, DiceValue, Question, PlacedBomb, QuestionTheme, QuestionGrade, GameItem, BoardThemeName } from '@/types/game';
 import { BOARD_THEMES } from '@/data/boardThemes';
 import { ALL_QUESTIONS } from '@/data/questions';
 import { ALL_ITEMS } from '@/data/items';
@@ -29,6 +29,7 @@ interface GameStoreState {
   turnCount: number;
   usedQuestionIds: string[];
   theme: QuestionTheme;
+  grade: QuestionGrade;
   boardTheme: BoardThemeName;
   mysteryBoxItem: GameItem | null;
   hintActive: boolean;
@@ -48,7 +49,7 @@ interface GameStoreState {
   generatedQuestions: Question[];
 
   // Actions
-  initGame: (players: Player[], theme: QuestionTheme, boardTheme?: BoardThemeName) => void;
+  initGame: (players: Player[], theme: QuestionTheme, boardTheme?: BoardThemeName, grade?: QuestionGrade) => void;
   rollDice: (overrideValue?: DiceValue, isRemote?: boolean) => void;
   finishDiceRoll: () => void;
   movePlayerStep: () => void;
@@ -80,6 +81,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   turnCount: 0,
   usedQuestionIds: [],
   theme: 'general',
+  grade: 'smp',
   boardTheme: 'classic',
   mysteryBoxItem: null,
   hintActive: false,
@@ -98,10 +100,11 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   generatedQuestions: [],
 
   // ── initGame ───────────────────────────────────────────────────────────────
-  initGame: (players, theme, boardTheme = 'classic') => {
+  initGame: (players, theme, boardTheme = 'classic', grade = 'smp') => {
     set({
       players,
       theme,
+      grade,
       boardTheme,
       phase: 'rolling',
       currentPlayerIndex: 0,
@@ -354,7 +357,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
   // ── showQuestion ───────────────────────────────────────────────────────────
   showQuestion: async () => {
-    const { theme, usedQuestionIds, hintActive, players, currentPlayerIndex } = get();
+    const { theme, grade, usedQuestionIds, hintActive, players, currentPlayerIndex } = get();
     const currentPlayer = players[currentPlayerIndex];
 
     const getStaticQuestion = (): Question => {
@@ -382,7 +385,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     }
 
     try {
-      const generated = await generateQuestionFromAI(theme, 'medium');
+      const generated = await generateQuestionFromAI(theme, 'medium', grade);
       if (hintActive) {
         const wrongIndices = [0, 1, 2, 3].filter((i) => i !== generated.correctAnswer);
         const removedIndex = wrongIndices[Math.floor(Math.random() * wrongIndices.length)];
