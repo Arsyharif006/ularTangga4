@@ -138,7 +138,7 @@ function OnlineGameContent() {
       usedSkillThisTurn: online.usedSkillThisTurn || [],
     }));
 
-    initGame(offlinePlayers, room.theme);
+    initGame(offlinePlayers, room.theme, undefined, room.grade || 'smp');
 
     const map: Record<string, number> = {};
     room.players.forEach((online, idx) => {

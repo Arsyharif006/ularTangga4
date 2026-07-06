@@ -9,6 +9,7 @@ import { BOMB_PENALTY_STEPS } from '@/lib/constants';
 import { generateQuestionFromAI } from '@/lib/aiQuestionGenerator';
 
 const BOT_FORBIDDEN_ITEM_TYPES = new Set(['hint_answer', 'freeze_timer', 'golden_dice']);
+let activeQuestionRequestId = 0;
 
 const getRandomItemForPlayer = (player?: Player | null) => {
   const candidates = ALL_ITEMS.filter((item) => !player?.isBot || !BOT_FORBIDDEN_ITEM_TYPES.has(item.type));
@@ -357,10 +358,19 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
 
   // ── showQuestion ───────────────────────────────────────────────────────────
   showQuestion: async () => {
-    const { theme, grade, usedQuestionIds, hintActive, players, currentPlayerIndex } = get();
+    const { theme, grade, hintActive, players, currentPlayerIndex } = get();
     const currentPlayer = players[currentPlayerIndex];
+    const requestId = ++activeQuestionRequestId;
+
+    set({
+      currentQuestion: null,
+      questionGenerationCount: get().questionGenerationCount + 1,
+      hintActive: false,
+      hintRemovedIndex: null,
+    });
 
     const getStaticQuestion = (): Question => {
+      const usedQuestionIds = get().usedQuestionIds;
       const themeQs = ALL_QUESTIONS[theme] || ALL_QUESTIONS['general'];
       const available = themeQs.filter((q) => !usedQuestionIds.includes(q.id));
       return available.length > 0
@@ -369,9 +379,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     };
 
     const applyQuestion = (question: Question, removedIndex: number | null) => {
+      if (requestId !== activeQuestionRequestId) return;
+
+      const nextUsedQuestionIds = [...get().usedQuestionIds, question.id];
       set({
         currentQuestion: question,
-        usedQuestionIds: [...usedQuestionIds, question.id],
+        usedQuestionIds: nextUsedQuestionIds,
         phase: 'question',
         hintActive: false,
         hintRemovedIndex: removedIndex,
