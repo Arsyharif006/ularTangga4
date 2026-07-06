@@ -1,0 +1,504 @@
+[
+  {
+    "question": "Apa ibu kota Indonesia?",
+    "options": ["Bandung", "Jakarta", "Surabaya", "Medan"],
+    "correct_answer": 1,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Planet yang kita tinggali adalah...",
+    "options": ["Mars", "Venus", "Bumi", "Jupiter"],
+    "correct_answer": 2,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Bendera Indonesia memiliki warna...",
+    "options": ["Merah dan Biru", "Hijau dan Putih", "Merah dan Putih", "Kuning dan Merah"],
+    "correct_answer": 2,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Hari setelah hari Senin adalah...",
+    "options": ["Selasa", "Jumat", "Sabtu", "Minggu"],
+    "correct_answer": 0,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Ada berapa hari dalam satu minggu?",
+    "options": ["5", "6", "8", "7"],
+    "correct_answer": 3,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Hewan yang dikenal sebagai Raja Hutan adalah...",
+    "options": ["Harimau", "Gajah", "Singa", "Kuda"],
+    "correct_answer": 2,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Matahari terbit dari arah...",
+    "options": ["Utara", "Timur", "Barat", "Selatan"],
+    "correct_answer": 1,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Pancasila terdiri atas berapa sila?",
+    "options": ["4", "6", "7", "5"],
+    "correct_answer": 3,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Hewan yang menghasilkan susu untuk dikonsumsi manusia adalah...",
+    "options": ["Ayam", "Bebek", "Sapi", "Kambing"],
+    "correct_answer": 2,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Indonesia terletak di kawasan...",
+    "options": ["Asia Tenggara", "Asia Timur", "Eropa", "Afrika"],
+    "correct_answer": 0,
+    "theme": "general",
+    "grade": "sd"
+  },
+  
+  {
+    "question": "Alat yang digunakan untuk mengukur suhu adalah...",
+    "options": ["Penggaris", "Termometer", "Timbangan", "Kompas"],
+    "correct_answer": 1,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Bintang yang menjadi pusat tata surya adalah...",
+    "options": ["Mars", "Bulan", "Venus", "Matahari"],
+    "correct_answer": 3,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Berapa jumlah bulan dalam satu tahun?",
+    "options": ["10", "11", "12", "13"],
+    "correct_answer": 2,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Hewan yang dapat hidup di air dan di darat disebut...",
+    "options": ["Amfibi", "Mamalia", "Reptil", "Unggas"],
+    "correct_answer": 0,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Siapa presiden pertama Indonesia?",
+    "options": ["B. J. Habibie", "Joko Widodo", "Soekarno", "Soeharto"],
+    "correct_answer": 2,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Benda yang digunakan untuk menghapus tulisan pensil adalah...",
+    "options": ["Penghapus", "Spidol", "Kapur", "Pulpen"],
+    "correct_answer": 0,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Pelangi umumnya memiliki berapa warna?",
+    "options": ["5", "6", "7", "8"],
+    "correct_answer": 2,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Pulau terbesar di Indonesia adalah...",
+    "options": ["Jawa", "Bali", "Sumatra", "Kalimantan"],
+    "correct_answer": 3,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Alat transportasi yang terbang di udara adalah...",
+    "options": ["Pesawat terbang", "Kereta api", "Sepeda", "Kapal laut"],
+    "correct_answer": 0,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Hewan yang berkembang biak dengan bertelur disebut...",
+    "options": ["Vivipar", "Ovipar", "Mamalia", "Herbivora"],
+    "correct_answer": 1,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Sila pertama Pancasila berbunyi...",
+    "options": [
+      "Persatuan Indonesia",
+      "Ketuhanan Yang Maha Esa",
+      "Keadilan Sosial bagi Seluruh Rakyat Indonesia",
+      "Kemanusiaan yang Adil dan Beradab"
+    ],
+    "correct_answer": 1,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Alat musik tradisional angklung berasal dari daerah...",
+    "options": [
+      "Sumatera Barat",
+      "Jawa Tengah",
+      "Jawa Barat",
+      "Bali"
+    ],
+    "correct_answer": 2,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Hewan yang memakan tumbuhan disebut...",
+    "options": [
+      "Herbivora",
+      "Karnivora",
+      "Omnivora",
+      "Insektivora"
+    ],
+    "correct_answer": 0,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Alat untuk melihat benda yang sangat kecil adalah...",
+    "options": [
+      "Teleskop",
+      "Kompas",
+      "Mikroskop",
+      "Termometer"
+    ],
+    "correct_answer": 2,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Indonesia memiliki berapa musim?",
+    "options": [
+      "4",
+      "3",
+      "2",
+      "1"
+    ],
+    "correct_answer": 2,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Hari Kemerdekaan Indonesia diperingati setiap tanggal...",
+    "options": [
+      "17 Agustus",
+      "10 November",
+      "1 Juni",
+      "20 Mei"
+    ],
+    "correct_answer": 0,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Binatang yang dapat berubah menjadi kupu-kupu adalah...",
+    "options": [
+      "Belalang",
+      "Ulat",
+      "Semut",
+      "Laba-laba"
+    ],
+    "correct_answer": 1,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Laut yang memisahkan Pulau Jawa dan Pulau Kalimantan adalah...",
+    "options": [
+      "Laut Banda",
+      "Laut Flores",
+      "Selat Sunda",
+      "Laut Jawa"
+    ],
+    "correct_answer": 3,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Buah yang memiliki kandungan vitamin C tinggi adalah...",
+    "options": [
+      "Jeruk",
+      "Semangka",
+      "Pisang",
+      "Pepaya"
+    ],
+    "correct_answer": 0,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Alat yang digunakan untuk menunjukkan arah mata angin adalah...",
+    "options": [
+      "Jam",
+      "Kompas",
+      "Mikroskop",
+      "Teropong"
+    ],
+    "correct_answer": 1,
+    "theme": "general",
+    "grade": "sd"
+  },
+
+  {
+    "question": "Bahan utama untuk membuat kertas berasal dari...",
+    "options": [
+      "Pohon",
+      "Batu",
+      "Besi",
+      "Plastik"
+    ],
+    "correct_answer": 0,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Hewan yang dikenal sebagai mamalia terbesar di dunia adalah...",
+    "options": [
+      "Gajah Afrika",
+      "Paus Biru",
+      "Hiu Paus",
+      "Badak"
+    ],
+    "correct_answer": 1,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Jika lampu lalu lintas berwarna merah, maka pengendara harus...",
+    "options": [
+      "Berjalan pelan",
+      "Mempercepat kendaraan",
+      "Berhenti",
+      "Membunyikan klakson"
+    ],
+    "correct_answer": 2,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Nama mata uang negara Indonesia adalah...",
+    "options": [
+      "Ringgit",
+      "Dollar",
+      "Yen",
+      "Rupiah"
+    ],
+    "correct_answer": 3,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Bagian tubuh yang digunakan untuk mencium bau adalah...",
+    "options": [
+      "Hidung",
+      "Telinga",
+      "Mata",
+      "Kulit"
+    ],
+    "correct_answer": 0,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Bentuk bumi yang paling mendekati adalah...",
+    "options": [
+      "Kubus",
+      "Bulat",
+      "Segitiga",
+      "Persegi"
+    ],
+    "correct_answer": 1,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Orang yang bertugas memadamkan kebakaran adalah...",
+    "options": [
+      "Dokter",
+      "Polisi",
+      "Petugas pemadam kebakaran",
+      "Guru"
+    ],
+    "correct_answer": 2,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Hewan yang dapat bertelur dan terbang adalah...",
+    "options": [
+      "Kucing",
+      "Kambing",
+      "Sapi",
+      "Burung"
+    ],
+    "correct_answer": 3,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Sebelum makan, kita sebaiknya...",
+    "options": [
+      "Mencuci tangan",
+      "Menonton televisi",
+      "Berlari",
+      "Tidur"
+    ],
+    "correct_answer": 0,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Pulau tempat Candi Borobudur berada adalah...",
+    "options": [
+      "Sumatra",
+      "Jawa",
+      "Sulawesi",
+      "Kalimantan"
+    ],
+    "correct_answer": 1,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Gunung tertinggi di Indonesia yang masih aktif adalah...",
+    "options": [
+      "Gunung Bromo",
+      "Gunung Semeru",
+      "Gunung Merapi",
+      "Gunung Kerinci"
+    ],
+    "correct_answer": 1,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Siapa yang membacakan teks Proklamasi Kemerdekaan Indonesia?",
+    "options": [
+      "Mohammad Hatta",
+      "Soekarno",
+      "Ki Hajar Dewantara",
+      "Jenderal Sudirman"
+    ],
+    "correct_answer": 1,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Warna lampu lalu lintas yang berarti kendaraan boleh berjalan adalah...",
+    "options": [
+      "Merah",
+      "Kuning",
+      "Hijau",
+      "Biru"
+    ],
+    "correct_answer": 2,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Hewan berikut yang hidup di air adalah...",
+    "options": [
+      "Kucing",
+      "Ayam",
+      "Ikan",
+      "Kelinci"
+    ],
+    "correct_answer": 2,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Pohon menghasilkan oksigen melalui bagian yang disebut...",
+    "options": [
+      "Akar",
+      "Daun",
+      "Batang",
+      "Bunga"
+    ],
+    "correct_answer": 1,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Satuan waktu yang terdiri atas 60 menit adalah...",
+    "options": [
+      "Hari",
+      "Jam",
+      "Detik",
+      "Minggu"
+    ],
+    "correct_answer": 1,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Alat yang digunakan untuk memotong kertas adalah...",
+    "options": [
+      "Lem",
+      "Gunting",
+      "Penggaris",
+      "Pensil"
+    ],
+    "correct_answer": 1,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Contoh sumber energi yang dapat diperbarui adalah...",
+    "options": [
+      "Minyak bumi",
+      "Batu bara",
+      "Matahari",
+      "Gas alam"
+    ],
+    "correct_answer": 2,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Profesi yang bertugas mengajar di sekolah adalah...",
+    "options": [
+      "Dokter",
+      "Guru",
+      "Pilot",
+      "Arsitek"
+    ],
+    "correct_answer": 1,
+    "theme": "general",
+    "grade": "sd"
+  },
+  {
+    "question": "Jika ingin menjaga kebersihan lingkungan, kita sebaiknya...",
+    "options": [
+      "Membuang sampah ke sungai",
+      "Membakar semua sampah sembarangan",
+      "Membuang sampah pada tempatnya",
+      "Meninggalkan sampah di jalan"
+    ],
+    "correct_answer": 2,
+    "theme": "general",
+    "grade": "sd"
+  }
+]

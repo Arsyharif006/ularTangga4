@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import type { QuestionTheme } from '@/types/game';
+import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'nodejs';
 
-export type AIProvider = 'gemini' | 'groq' | 'openai';
+export type AIProvider = 'groq';
 
 interface GeneratedQuestionData {
   question: string;
@@ -42,25 +43,15 @@ const DIFFICULTY_DESC: Record<string, string> = {
   hard: 'sulit (tingkat lanjut)',
 };
 
-function getProviderApiKey(provider: AIProvider): string | undefined {
-  if (provider === 'groq') {
-    return process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY;
-  }
-
-  if (provider === 'openai') {
-    return process.env.OPENAI_API_KEY || process.env.NEXT_PUBLIC_OPENAI_API_KEY;
-  }
-
-  return process.env.GEMINI_API_KEY || process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+function getProviderApiKey(): string | undefined {
+  return process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY;
 }
 
 function buildPrompt(theme: QuestionTheme, difficulty: string): string {
   const themeDesc = THEME_PROMPTS[theme];
   const difficultyDesc = DIFFICULTY_DESC[difficulty] || 'sedang';
-
-  return `JSON_ONLY
-{"question":"...","options":["","","",""],"correctAnswer":0,"theme":"${theme}","difficulty":"${difficulty}"}
-Generate one Indonesian multiple-choice question about ${themeDesc}. Difficulty: ${difficultyDesc}.`;
+  // Concise prompt to minimize token usage. Instruct model to output ONLY a single JSON object.
+  return `JSON_ONLY\n{"question":"...","options":["","","",""],"correctAnswer":0,"theme":"${theme}","difficulty":"${difficulty}"}\nGenerate one Indonesian multiple-choice question about ${themeDesc}. Difficulty: ${difficultyDesc}. Output must be exactly one JSON object matching the example.`;
 }
 
 function parseJsonContent(content: string): GeneratedQuestionData {
@@ -79,138 +70,72 @@ function parseJsonContent(content: string): GeneratedQuestionData {
   };
 }
 
-async function generateWithGemini(theme: QuestionTheme, difficulty: string): Promise<GeneratedQuestionData> {
-  const apiKey = getProviderApiKey('gemini');
-  if (!apiKey) throw new Error('GEMINI_API_KEY tidak diset');
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: buildPrompt(theme, difficulty) }] }],
-        generationConfig: {
-          temperature: 0.4,
-          topK: 8,
-          topP: 0.8,
-          maxOutputTokens: 180,
-        },
-      }),
-    }
-  );
-
-  if (!response.ok) {
-    const bodyText = await response.text().catch(() => '');
-    throw new Error(`Gemini API error: status=${response.status} statusText=${response.statusText} body=${bodyText}`);
-  }
-
-  const data = await response.json().catch(() => null);
-  const content = data?.candidates?.[0]?.content?.parts?.[0]?.text || data?.candidates?.[0]?.content || null;
-
-  if (!content || typeof content !== 'string') {
-    throw new Error('Gemini API response tidak valid or empty content');
-  }
-
-  return parseJsonContent(content);
-}
-
 async function generateWithGroq(theme: QuestionTheme, difficulty: string): Promise<GeneratedQuestionData> {
-  const apiKey = getProviderApiKey('groq');
+  const apiKey = getProviderApiKey();
   if (!apiKey) throw new Error('GROQ_API_KEY tidak diset');
+  // Try primary request with conservative token limit
+  const doRequest = async (model: string, maxTokens: number) => {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: buildPrompt(theme, difficulty) }],
+        temperature: 0.7,
+        max_completion_tokens: maxTokens,
+        top_p: 1,
+        reasoning_effort: 'medium',
+        stream: false,
+        stop: null,
+      }),
+    });
 
-  const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
-  let lastError: unknown = null;
+    const text = await res.text().catch(() => '');
+    return { res, text } as const;
+  };
 
-  for (const model of models) {
+  const primary = await doRequest('openai/gpt-oss-120b', 512);
+  if (primary.res.ok) {
+    const data = JSON.parse(primary.text || '{}');
+    const content = data?.choices?.[0]?.message?.content ?? null;
+    if (!content || typeof content !== 'string') throw new Error('Groq API response tidak valid atau kosong');
+    return parseJsonContent(content);
+  }
+
+  // If primary failed due to payload too large / rate limits, try a smaller model / token budget
+  const primaryBody = primary.text || '';
+  const shouldFallback = primary.res.status === 413 || /rate_limit|tokens|Payload Too Large/i.test(primaryBody + primary.res.statusText);
+  if (shouldFallback) {
+    console.warn('[AI] Primary Groq request failed due to size/rate limits; retrying with smaller model/tokens');
     try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model,
-          messages: [{ role: 'user', content: buildPrompt(theme, difficulty) }],
-          temperature: 0.4,
-          max_tokens: 180,
-        }),
-      });
-
-      const bodyText = await response.text().catch(() => '');
-      if (!response.ok) {
-        lastError = new Error(`Groq API error: status=${response.status} statusText=${response.statusText} body=${bodyText}`);
-        continue;
+      const fallback = await doRequest('openai/gpt-oss-20b', 256);
+      if (fallback.res.ok) {
+        const data = JSON.parse(fallback.text || '{}');
+        const content = data?.choices?.[0]?.message?.content ?? null;
+        if (!content || typeof content !== 'string') throw new Error('Groq fallback response tidak valid atau kosong');
+        return parseJsonContent(content);
       }
-
-      const data = await response.json().catch(() => null);
-      const content = data?.choices?.[0]?.message?.content || data?.choices?.[0]?.text || null;
-
-      if (!content || typeof content !== 'string') {
-        lastError = new Error('Groq API response tidak valid or empty content');
-        continue;
-      }
-
-      return parseJsonContent(content);
-    } catch (error) {
-      lastError = error;
+      const bodyText = fallback.text || '';
+      throw new Error(`Groq fallback error: status=${fallback.res.status} statusText=${fallback.res.statusText} body=${bodyText}`);
+    } catch (err) {
+      // Rethrow original primary error if fallback fails
+      throw new Error(`Groq primary failed: status=${primary.res.status} statusText=${primary.res.statusText} body=${primaryBody}; fallback error: ${err instanceof Error ? err.message : String(err)}`);
     }
   }
 
-  throw lastError instanceof Error ? lastError : new Error('Groq API request gagal');
-
+  throw new Error(`Groq API error: status=${primary.res.status} statusText=${primary.res.statusText} body=${primaryBody}`);
 }
 
-async function generateWithOpenAI(theme: QuestionTheme, difficulty: string): Promise<GeneratedQuestionData> {
-  const apiKey = getProviderApiKey('openai');
-  if (!apiKey) throw new Error('OPENAI_API_KEY tidak diset');
-
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: buildPrompt(theme, difficulty) }],
-      temperature: 0.4,
-      max_tokens: 180,
-    }),
-  });
-
-  if (!response.ok) {
-    const bodyText = await response.text().catch(() => '');
-    throw new Error(`OpenAI API error: status=${response.status} statusText=${response.statusText} body=${bodyText}`);
-  }
-
-  const data = await response.json().catch(() => null);
-  const content = data?.choices?.[0]?.message?.content || data?.choices?.[0]?.text || null;
-
-  if (!content || typeof content !== 'string') {
-    throw new Error('OpenAI API response tidak valid or empty content');
-  }
-
-  return parseJsonContent(content);
-}
-
-async function generateWithProvider(provider: AIProvider, theme: QuestionTheme, difficulty: string): Promise<GeneratedQuestionData> {
-  if (provider === 'groq') {
-    return generateWithGroq(theme, difficulty);
-  }
-
-  if (provider === 'openai') {
-    return generateWithOpenAI(theme, difficulty);
-  }
-
-  return generateWithGemini(theme, difficulty);
+async function generateWithProvider(theme: QuestionTheme, difficulty: string): Promise<GeneratedQuestionData> {
+  return generateWithGroq(theme, difficulty);
 }
 
 export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}));
-    const provider = (body.provider || process.env.NEXT_PUBLIC_AI_PROVIDER || 'gemini') as AIProvider;
     const theme = body.theme as QuestionTheme;
     const difficulty = (body.difficulty || 'medium') as string;
 
@@ -218,7 +143,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Theme tidak valid' }, { status: 400 });
     }
 
-    const data = await generateWithProvider(provider, theme, difficulty);
+    const data = await generateWithProvider(theme, difficulty);
+
+    // Persist generated question server-side using service role to bypass RLS
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE;
+      if (supabaseUrl && serviceKey) {
+        const svc = createClient(supabaseUrl, serviceKey as string);
+        const normalized = String(data.question ?? '')
+          .toLowerCase()
+          .replace(/[^\w\s]/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+        await svc.from('ai_questions').insert({
+          question: data.question,
+          question_normalized: normalized,
+          options: data.options,
+          correct_answer: data.correctAnswer,
+          theme: data.theme,
+          grade: data.difficulty,
+          created_at: new Date().toISOString(),
+        });
+      }
+    } catch (err) {
+      console.warn('[AI] Failed to persist generated question server-side:', err);
+      // Do not fail the request for DB errors
+    }
+
     return NextResponse.json({ success: true, ...data });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';

@@ -171,10 +171,21 @@ export default function GamePage() {
         }
 
         if (!currentQuestion) {
-          try {
-            showQuestion();
-            await new Promise((resolve) => setTimeout(resolve, 150));
-          } catch {}
+          const correct = Math.random() < 0.6;
+          const resultText = `${currentPlayer?.name} ${correct ? 'berhasil menjawab soal' : 'tidak berhasil menjawab soal'}`;
+          const thinkingKey = `bot-think-${currentPlayer?.id}-${turnCount}-${phase}`;
+          const thinkingId = pushNotification(`${currentPlayer?.name} sedang berpikir...`, 'info', thinkingKey);
+
+          setTimeout(() => {
+            setNotifQueue((q) => q.filter((t) => t.id !== thinkingId));
+            pushNotification(resultText, correct ? 'success' : 'error', `bot-answer-${currentPlayer?.id}-${turnCount}-${phase}`);
+
+            setTimeout(() => {
+              answerQuestion(correct);
+              botActionInFlightRef.current = false;
+            }, 700);
+          }, 900);
+          return;
         }
 
         const correct = Math.random() < 0.6;

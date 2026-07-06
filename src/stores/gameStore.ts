@@ -6,6 +6,7 @@ import { BOARD_THEMES } from '@/data/boardThemes';
 import { ALL_QUESTIONS } from '@/data/questions';
 import { ALL_ITEMS } from '@/data/items';
 import { BOMB_PENALTY_STEPS } from '@/lib/constants';
+import { generateQuestionFromAI } from '@/lib/aiQuestionGenerator';
 
 const BOT_FORBIDDEN_ITEM_TYPES = new Set(['hint_answer', 'freeze_timer', 'golden_dice']);
 
@@ -43,6 +44,8 @@ interface GameStoreState {
   pendingItemId: string | null;
   turnActionLock: boolean;
   isItemInUse: boolean;
+  questionGenerationCount: number;
+  generatedQuestions: Question[];
 
   // Actions
   initGame: (players: Player[], theme: QuestionTheme, boardTheme?: BoardThemeName) => void;
@@ -52,8 +55,8 @@ interface GameStoreState {
   handlePostMove: () => void;
   triggerMysteryBox: () => void;
   claimMysteryBox: () => void;
-  closeAwardedItemModal: () => void;
-  showQuestion: () => void;
+  closeAwardedItemModal: () => Promise<void>;
+  showQuestion: () => Promise<void>;
   answerQuestion: (isCorrect: boolean) => void;
   nextTurn: () => void;
   useItem: (itemId: string, targetId?: number, position?: number) => void;
@@ -91,6 +94,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   pendingItemId: null,
   turnActionLock: false,
   isItemInUse: false,
+  questionGenerationCount: 0,
+  generatedQuestions: [],
 
   // ── initGame ───────────────────────────────────────────────────────────────
   initGame: (players, theme, boardTheme = 'classic') => {
@@ -311,31 +316,8 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       return;
     }
 
-    const { theme: qTheme, usedQuestionIds: qUsed, hintActive: qHint } = get();
-    let themeQs = ALL_QUESTIONS[qTheme] || ALL_QUESTIONS['general'];
-    let available = themeQs.filter((q) => !qUsed.includes(q.id));
-    if (available.length === 0) available = themeQs;
-    const question = available.length > 0
-      ? available[Math.floor(Math.random() * available.length)]
-      : themeQs[0];
-
-    const applyQuestion = (removedIndex: number | null) => {
-      set({
-        currentQuestion: question,
-        usedQuestionIds: [...qUsed, question.id],
-        phase: 'question',
-        hintActive: false,
-        hintRemovedIndex: removedIndex,
-      });
-    };
-
-    if (qHint) {
-      const wrongIndices = [0, 1, 2, 3].filter((i) => i !== question.correctAnswer);
-      const removedIndex = wrongIndices[Math.floor(Math.random() * wrongIndices.length)];
-      setTimeout(() => applyQuestion(removedIndex), 1000);
-    } else {
-      setTimeout(() => applyQuestion(null), 1000);
-    }
+    void get().showQuestion();
+    return;
   },
 
   // ── triggerMysteryBox ──────────────────────────────────────────────────────
@@ -371,21 +353,19 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   },
 
   // ── showQuestion ───────────────────────────────────────────────────────────
-  showQuestion: () => {
-    const { theme, usedQuestionIds, hintActive } = get();
+  showQuestion: async () => {
+    const { theme, usedQuestionIds, hintActive, players, currentPlayerIndex } = get();
+    const currentPlayer = players[currentPlayerIndex];
 
-    let themeQs = ALL_QUESTIONS[theme] || ALL_QUESTIONS['general'];
-    let available = themeQs.filter((q) => !usedQuestionIds.includes(q.id));
-    if (available.length === 0) available = themeQs;
-
-    const question =
-      available.length > 0
+    const getStaticQuestion = (): Question => {
+      const themeQs = ALL_QUESTIONS[theme] || ALL_QUESTIONS['general'];
+      const available = themeQs.filter((q) => !usedQuestionIds.includes(q.id));
+      return available.length > 0
         ? available[Math.floor(Math.random() * available.length)]
-        : themeQs[0];
+        : themeQs[Math.floor(Math.random() * themeQs.length)] || themeQs[0];
+    };
 
-    if (hintActive) {
-      const wrongIndices = [0, 1, 2, 3].filter((i) => i !== question.correctAnswer);
-      const removedIndex = wrongIndices[Math.floor(Math.random() * wrongIndices.length)];
+    const applyQuestion = (question: Question, removedIndex: number | null) => {
       set({
         currentQuestion: question,
         usedQuestionIds: [...usedQuestionIds, question.id],
@@ -393,13 +373,34 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
         hintActive: false,
         hintRemovedIndex: removedIndex,
       });
-    } else {
-      set({
-        currentQuestion: question,
-        usedQuestionIds: [...usedQuestionIds, question.id],
-        phase: 'question',
-        hintRemovedIndex: null,
-      });
+    };
+
+    if (currentPlayer?.isBot) {
+      const fallbackQuestion = getStaticQuestion();
+      applyQuestion(fallbackQuestion, null);
+      return;
+    }
+
+    try {
+      const generated = await generateQuestionFromAI(theme, 'medium');
+      if (hintActive) {
+        const wrongIndices = [0, 1, 2, 3].filter((i) => i !== generated.correctAnswer);
+        const removedIndex = wrongIndices[Math.floor(Math.random() * wrongIndices.length)];
+        applyQuestion(generated, removedIndex);
+      } else {
+        applyQuestion(generated, null);
+      }
+      return;
+    } catch (error) {
+      console.warn('[Question] AI generation failed, using static fallback:', error);
+      const fallbackQuestion = getStaticQuestion();
+      if (hintActive) {
+        const wrongIndices = [0, 1, 2, 3].filter((i) => i !== fallbackQuestion.correctAnswer);
+        const removedIndex = wrongIndices[Math.floor(Math.random() * wrongIndices.length)];
+        applyQuestion(fallbackQuestion, removedIndex);
+      } else {
+        applyQuestion(fallbackQuestion, null);
+      }
     }
   },
 
@@ -472,7 +473,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   },
 
   // ── closeAwardedItemModal ──────────────────────────────────────────────────
-  closeAwardedItemModal: () => {
+  closeAwardedItemModal: async () => {
     const { awardedItem, awardContext } = get();
     if (!awardedItem) return;
 
@@ -480,7 +481,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
     set({ awardedItem: null, awardContext: null });
 
     if (awardContext === 'mystery') {
-      get().showQuestion();
+      await get().showQuestion();
     } else if (awardContext === 'strike') {
       get().nextTurn();
     }
@@ -652,5 +653,12 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   setPhase: (phase) => set({ phase }),
   setTurnActionLock: (val) => set({ turnActionLock: val }),
   setItemInUse: (val) => set({ isItemInUse: val }),
-  resetGame: () => set({ phase: 'setup', turnActionLock: false, isItemInUse: false }),
+  resetGame: () => set({ 
+    phase: 'setup', 
+    turnActionLock: false, 
+    isItemInUse: false,
+    questionGenerationCount: 0,
+    generatedQuestions: [],
+    usedQuestionIds: [],
+  }),
 }));

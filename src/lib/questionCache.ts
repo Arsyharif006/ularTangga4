@@ -4,7 +4,7 @@
 
 import type { Question, QuestionTheme } from '@/types/game';
 import { generateQuestionsFromAI } from './aiQuestionGenerator';
-import { ALL_QUESTIONS as STATIC_QUESTIONS } from '@/data/questions';
+import { STATIC_QUESTIONS } from '@/data/questions';
 import supabase from './supabase/client';
 
 interface QuestionCache {
@@ -33,7 +33,7 @@ async function loadAIQuestionsFromDatabase(theme: QuestionTheme): Promise<Questi
       question: row.question,
       options: row.options as [string, string, string, string],
       correctAnswer: row.correct_answer as 0 | 1 | 2 | 3,
-      difficulty: row.difficulty as 'easy' | 'medium' | 'hard',
+      difficulty: row.grade as 'easy' | 'medium' | 'hard',
     }));
   } catch (error) {
     console.warn('Failed loading AI questions from database:', error);
@@ -52,15 +52,15 @@ export async function initializeQuestionCache() {
   const useAI = process.env.NEXT_PUBLIC_USE_AI_QUESTIONS === 'true';
 
   if (!useAI) {
-    console.log('Using static questions (AI disabled)');
-    questionCache = { ...STATIC_QUESTIONS };
+    console.log('AI questions disabled and no static fallback configured; question cache will be empty');
+    questionCache = {};
     cacheInitialized = true;
     return;
   }
 
   try {
-    console.log('Initializing AI question cache lazily...');
-    questionCache = { ...STATIC_QUESTIONS };
+    console.log('Initializing AI question cache from Supabase...');
+    questionCache = {};
 
     const themes: QuestionTheme[] = [
       'sd', 'smp', 'sma_smk',
@@ -86,14 +86,10 @@ export async function initializeQuestionCache() {
     for (const theme of themes) {
       try {
         const aiDatabaseQuestions = await loadAIQuestionsFromDatabase(theme);
-        if (aiDatabaseQuestions.length > 0) {
-          questionCache[theme] = [...(STATIC_QUESTIONS[theme] || []), ...aiDatabaseQuestions];
-        } else {
-          questionCache[theme] = STATIC_QUESTIONS[theme] || [];
-        }
+        questionCache[theme] = aiDatabaseQuestions;
       } catch (error) {
         console.warn(`Failed loading DB questions for ${theme}:`, error);
-        questionCache[theme] = STATIC_QUESTIONS[theme] || [];
+        questionCache[theme] = [];
       }
     }
 
