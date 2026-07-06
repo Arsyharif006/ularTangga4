@@ -43,8 +43,15 @@ const DIFFICULTY_DESC: Record<string, string> = {
   hard: 'sulit (tingkat lanjut)',
 };
 
+const GROQ_MODELS = [
+  'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b',
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
+] as const;
+
 function getProviderApiKey(): string | undefined {
-  return process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY;
+  return process.env.GROQ_API_KEY || process.env.GROQ_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY;
 }
 
 function buildPrompt(theme: QuestionTheme, difficulty: string): string {
@@ -55,7 +62,8 @@ function buildPrompt(theme: QuestionTheme, difficulty: string): string {
 }
 
 function parseJsonContent(content: string): GeneratedQuestionData {
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  const trimmed = content.trim();
+  const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     throw new Error('Tidak dapat parse JSON dari response AI');
   }
@@ -72,61 +80,75 @@ function parseJsonContent(content: string): GeneratedQuestionData {
 
 async function generateWithGroq(theme: QuestionTheme, difficulty: string): Promise<GeneratedQuestionData> {
   const apiKey = getProviderApiKey();
-  if (!apiKey) throw new Error('GROQ_API_KEY tidak diset');
-  // Try primary request with conservative token limit
-  const doRequest = async (model: string, maxTokens: number) => {
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'user', content: buildPrompt(theme, difficulty) }],
-        temperature: 0.7,
-        max_completion_tokens: maxTokens,
-        top_p: 1,
-        reasoning_effort: 'medium',
-        stream: false,
-        stop: null,
-      }),
-    });
+  if (!apiKey) {
+    throw new Error('GROQ_API_KEY belum diatur. Tambahkan variabel environment di Vercel sebelum deploy.');
+  }
 
-    const text = await res.text().catch(() => '');
-    return { res, text } as const;
+  const doRequest = async (model: string, maxTokens: number) => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15000);
+
+    try {
+      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: buildPrompt(theme, difficulty) }],
+          temperature: 0.7,
+          max_completion_tokens: maxTokens,
+          top_p: 1,
+          ...(model.includes('gpt-oss') ? { reasoning_effort: 'medium' } : {}),
+          stream: false,
+          stop: null,
+        }),
+        signal: controller.signal,
+      });
+
+      const text = await res.text().catch(() => '');
+      return { res, text } as const;
+    } finally {
+      clearTimeout(timeout);
+    }
   };
 
-  const primary = await doRequest('openai/gpt-oss-120b', 512);
-  if (primary.res.ok) {
-    const data = JSON.parse(primary.text || '{}');
-    const content = data?.choices?.[0]?.message?.content ?? null;
-    if (!content || typeof content !== 'string') throw new Error('Groq API response tidak valid atau kosong');
-    return parseJsonContent(content);
-  }
+  let lastError: Error | null = null;
 
-  // If primary failed due to payload too large / rate limits, try a smaller model / token budget
-  const primaryBody = primary.text || '';
-  const shouldFallback = primary.res.status === 413 || /rate_limit|tokens|Payload Too Large/i.test(primaryBody + primary.res.statusText);
-  if (shouldFallback) {
-    console.warn('[AI] Primary Groq request failed due to size/rate limits; retrying with smaller model/tokens');
-    try {
-      const fallback = await doRequest('openai/gpt-oss-20b', 256);
-      if (fallback.res.ok) {
-        const data = JSON.parse(fallback.text || '{}');
-        const content = data?.choices?.[0]?.message?.content ?? null;
-        if (!content || typeof content !== 'string') throw new Error('Groq fallback response tidak valid atau kosong');
-        return parseJsonContent(content);
+  for (const model of GROQ_MODELS) {
+    const attempt = await doRequest(model, model.includes('gpt-oss') ? 512 : 384);
+    if (attempt.res.ok) {
+      const data = JSON.parse(attempt.text || '{}');
+      const content = data?.choices?.[0]?.message?.content ?? null;
+      if (!content || typeof content !== 'string') {
+        throw new Error('Groq API response tidak valid atau kosong');
       }
-      const bodyText = fallback.text || '';
-      throw new Error(`Groq fallback error: status=${fallback.res.status} statusText=${fallback.res.statusText} body=${bodyText}`);
-    } catch (err) {
-      // Rethrow original primary error if fallback fails
-      throw new Error(`Groq primary failed: status=${primary.res.status} statusText=${primary.res.statusText} body=${primaryBody}; fallback error: ${err instanceof Error ? err.message : String(err)}`);
+      return parseJsonContent(content);
     }
+
+    const bodyText = attempt.text || '';
+    const details = `status=${attempt.res.status} statusText=${attempt.res.statusText} body=${bodyText.slice(0, 400)}`;
+
+    if (attempt.res.status === 401 || attempt.res.status === 403) {
+      throw new Error(`Groq API key tidak valid atau tidak diizinkan. ${details}`);
+    }
+
+    if (attempt.res.status === 404 || attempt.res.status === 400 || attempt.res.status === 422) {
+      lastError = new Error(`Model ${model} tidak tersedia. ${details}`);
+      continue;
+    }
+
+    if (attempt.res.status === 429 || attempt.res.status >= 500 || /rate_limit|overloaded|timed out|timeout/i.test(bodyText)) {
+      lastError = new Error(`Groq request gagal untuk model ${model}. ${details}`);
+      continue;
+    }
+
+    lastError = new Error(`Groq API error untuk model ${model}. ${details}`);
   }
 
-  throw new Error(`Groq API error: status=${primary.res.status} statusText=${primary.res.statusText} body=${primaryBody}`);
+  throw lastError || new Error('Groq API gagal setelah mencoba beberapa model');
 }
 
 async function generateWithProvider(theme: QuestionTheme, difficulty: string): Promise<GeneratedQuestionData> {
@@ -143,6 +165,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Theme tidak valid' }, { status: 400 });
     }
 
+    console.log('[AI] Requesting question', { theme, difficulty, hasApiKey: Boolean(getProviderApiKey()) });
     const data = await generateWithProvider(theme, difficulty);
 
     // Persist generated question server-side using service role to bypass RLS
