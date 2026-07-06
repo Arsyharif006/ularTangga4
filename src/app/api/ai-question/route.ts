@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import type { QuestionTheme, QuestionGrade } from '@/types/game';
 import { createClient } from '@supabase/supabase-js';
@@ -91,7 +92,8 @@ function buildPrompt(theme: QuestionTheme, grade: QuestionGrade = 'smp'): string
 
   return `JSON_ONLY
 {"question":"...","options":["","","",""],"correctAnswer":0}
-Buat 1 soal pilihan ganda berbahasa Indonesia tentang ${themeDesc}, ${gradeContext}, dengan tingkat kesulitan ${difficultyDesc}.
+Buat 1 soal pilihan ganda berbahasa Indonesia/inggris sesuai tema tentang ${themeDesc}, ${gradeContext}, dengan tingkat kesulitan ${difficultyDesc}.
+Batasi panjang teks pertanyaan menjadi 10-20 kata saja; buat kalimat singkat, langsung ke inti, dan mudah dipahami.
 Gunakan gaya bahasa: ${gradeStyle}.
 Bebaskan sepenuhnya jenis soal (hitungan, cerita, analisis, pemahaman, logika, dll), konteksnya (nama, benda, situasi, angka), dan sudut pandangnya — asal tetap relevan dengan tema dan jenjang di atas. Jangan terpaku pada satu pola atau contoh tertentu, buat soal terasa baru dan tidak monoton setiap kali dibuat.
 Output HANYA 1 JSON valid berisi field question, options (4 string pilihan jawaban), dan correctAnswer (index 0-3). Jangan tambahkan teks lain di luar JSON.`;
@@ -155,29 +157,39 @@ async function generateWithGroq(theme: QuestionTheme, grade: QuestionGrade): Pro
 
   for (const model of GROQ_MODELS) {
     const maxTokens = model.includes('qwen') ? 4096 : model.includes('gpt-oss') ? 512 : 384;
-    const attempt = await doRequest(model, maxTokens);
-    if (attempt.res.ok) {
+    let attempt;
+    try {
+      attempt = await doRequest(model, maxTokens);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      lastError = new Error(`Groq request threw for model ${model}: ${msg}`);
+      // Try next model when a network/abort/other exception occurs
+      continue;
+    }
+
+    if (attempt.res && attempt.res.ok) {
       const data = JSON.parse(attempt.text || '{}');
       const content = data?.choices?.[0]?.message?.content ?? null;
       if (!content || typeof content !== 'string') {
-        throw new Error('Groq API response tidak valid atau kosong');
+        lastError = new Error('Groq API response tidak valid atau kosong');
+        continue; // try next model
       }
       return parseJsonContent(content);
     }
 
-    const bodyText = attempt.text || '';
-    const details = `status=${attempt.res.status} statusText=${attempt.res.statusText} body=${bodyText.slice(0, 400)}`;
+    const bodyText = (attempt && attempt.text) || '';
+    const details = attempt && attempt.res ? `status=${attempt.res.status} statusText=${attempt.res.statusText} body=${bodyText.slice(0, 400)}` : `no response body=${bodyText.slice(0,400)}`;
 
-    if (attempt.res.status === 401 || attempt.res.status === 403) {
+    if (attempt && attempt.res && (attempt.res.status === 401 || attempt.res.status === 403)) {
       throw new Error(`Groq API key tidak valid atau tidak diizinkan. ${details}`);
     }
 
-    if (attempt.res.status === 404 || attempt.res.status === 400 || attempt.res.status === 422) {
+    if (attempt && attempt.res && (attempt.res.status === 404 || attempt.res.status === 400 || attempt.res.status === 422)) {
       lastError = new Error(`Model ${model} tidak tersedia. ${details}`);
       continue;
     }
 
-    if (attempt.res.status === 429 || attempt.res.status >= 500 || /rate_limit|overloaded|timed out|timeout/i.test(bodyText)) {
+    if (attempt && attempt.res && (attempt.res.status === 429 || attempt.res.status >= 500 || /rate_limit|overloaded|timed out|timeout/i.test(bodyText))) {
       lastError = new Error(`Groq request gagal untuk model ${model}. ${details}`);
       continue;
     }
